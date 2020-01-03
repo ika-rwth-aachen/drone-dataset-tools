@@ -1,0 +1,10 @@
+
+.idea/
+
+*.csv
+
+data/191210_184057_HSO_TracksExporter/
+
+src/visualization/__pycache__/
+
+*.pyc
