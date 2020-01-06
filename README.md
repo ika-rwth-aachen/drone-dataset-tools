@@ -9,7 +9,7 @@ in Python, which allows the import and visualization of the dataset.
 
 ## TL;DR
 1. Install required packages e.g. by `pip3 install -r requirements.txt`.
-2. Copy the csv files of the inD dataset into the data subdirectory.
+2. Copy the csv files of the inD dataset into the `data` subdirectory.
 3. Run `python3 run_track_visualization.py --recording_name 01` from the `src` directory.
 
 ## Installation

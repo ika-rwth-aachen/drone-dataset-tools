@@ -51,7 +51,7 @@ class TrackVisualizer(object):
             self.fig = fig
             self.ax = self.fig.gca()
 
-        self.fig.canvas.set_window_title("Recording: {}".format(self.recording_name))
+        self.fig.canvas.set_window_title("Recording {}".format(self.recording_name))
 
         # Check whether to use the given background image
         background_image_path = self.config["background_image_path"]
@@ -116,7 +116,7 @@ class TrackVisualizer(object):
         self.button_play.on_clicked(self.start_play)
         self.button_stop.on_clicked(self.stop_play)
 
-        self.timer = self.fig.canvas.new_timer(interval=40*self.skip_n_frames)
+        self.timer = self.fig.canvas.new_timer(interval=25*self.skip_n_frames)
         self.timer.add_callback(self.update_button_next2, self.ax)
 
         # Define the callbacks for the widgets' actions
@@ -322,7 +322,8 @@ class TrackVisualizer(object):
             fig.canvas.mpl_connect('close_event', lambda evt: self.close_track_info_figure(evt, track_id))
             fig.canvas.mpl_connect('resize_event', lambda evt: fig.tight_layout())
             fig.set_size_inches(12, 7)
-            fig.canvas.set_window_title("Track {}".format(track_id))
+            fig.canvas.set_window_title("Recording {}, Track {} ({})".format(self.recording_name,
+                                                                             track_id, static_information["class"]))
 
             borders_list = []
             subplot_list = []
