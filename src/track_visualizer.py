@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import skimage
+import skimage.io
 from matplotlib.widgets import Button, Slider
 from loguru import logger
 
@@ -98,7 +98,7 @@ class TrackVisualizer(object):
         self.ax_button_stop = self.fig.add_axes([0.65, 0.035, 0.06, 0.04])
 
         # Define the widgets
-        self.frame_slider = DiscreteSlider(self.ax_slider, 'Frame', 0, self.maximum_frames, valinit=self.current_frame,
+        self.frame_slider = DiscreteSlider(self.ax_slider, 'Frame', 0, self.maximum_frames-1, valinit=self.current_frame,
                                            valfmt='%s')
         self.button_previous2 = Button(self.ax_button_previous2, 'Previous x%d' % self.skip_n_frames)
         self.button_previous = Button(self.ax_button_previous, 'Previous')
@@ -125,7 +125,7 @@ class TrackVisualizer(object):
         self.ax.set_autoscale_on(False)
 
     def update_keypress(self, evt):
-        if evt.key == "right" and self.current_frame + self.skip_n_frames <= self.maximum_frames:
+        if evt.key == "right" and self.current_frame + self.skip_n_frames < self.maximum_frames:
             self.current_frame = self.current_frame + self.skip_n_frames
             self.trigger_update()
         elif evt.key == "left" and self.current_frame - self.skip_n_frames >= 0:
@@ -139,7 +139,7 @@ class TrackVisualizer(object):
         self.changed_button = False
 
     def update_button_next(self, _):
-        if self.current_frame < self.maximum_frames:
+        if self.current_frame + 1 < self.maximum_frames:
             self.current_frame = self.current_frame + 1
             self.changed_button = True
             self.trigger_update()
@@ -148,7 +148,7 @@ class TrackVisualizer(object):
                 "There are no frames available with an index higher than {}.".format(self.maximum_frames))
 
     def update_button_next2(self, _):
-        if self.current_frame + self.skip_n_frames <= self.maximum_frames:
+        if self.current_frame + self.skip_n_frames < self.maximum_frames:
             self.current_frame = self.current_frame + self.skip_n_frames
             self.changed_button = True
             self.trigger_update()
@@ -156,7 +156,7 @@ class TrackVisualizer(object):
             logger.warning("There are no frames available with an index higher than {}.".format(self.maximum_frames))
 
     def update_button_previous(self, _):
-        if self.current_frame >= 1:
+        if self.current_frame - 1 >= 0:
             self.current_frame = self.current_frame - 1
             self.changed_button = True
             self.trigger_update()
@@ -534,8 +534,6 @@ class TrackVisualizer(object):
     @staticmethod
     @logger.catch(reraise=True)
     def show():
-        figManager = plt.get_current_fig_manager()
-        figManager.window.showMaximized()
         plt.show()
 
 
