@@ -2,60 +2,64 @@ import pandas
 import glob
 import numpy as np
 from loguru import logger
+from typing import List
 
 
-def read_all_recordings_from_csv(base_path="../data/"):
+def read_all_recordings_from_csv(base_path: str = "../data/") -> List[dict]:
     """
-    This methods reads the tracks and meta information for all recordings given the path of the inD dataset.
-    :param base_path: Directory containing all csv files of the inD dataset
-    :return: a tuple of tracks, static track info and recording meta info
+    Read tracks and meta information for all recordings in a directory
+    Warning: This might need a lot of memory!
+    :param base_path: Directory containing all csv files of the dataset
+    :return: Tuple of tracks, tracks meta and recording meta
     """
     tracks_files = sorted(glob.glob(base_path + "*_tracks.csv"))
-    static_tracks_files = sorted(glob.glob(base_path + "*_tracksMeta.csv"))
+    tracks_meta_files = sorted(glob.glob(base_path + "*_tracksMeta.csv"))
     recording_meta_files = sorted(glob.glob(base_path + "*_recordingMeta.csv"))
 
-    all_tracks = []
-    all_static_info = []
-    all_meta_info = []
-    for track_file, static_tracks_file, recording_meta_file in zip(tracks_files,
-                                                                   static_tracks_files,
-                                                                   recording_meta_files):
-        logger.info("Loading csv files {}, {} and {}", track_file, static_tracks_file, recording_meta_file)
-        tracks, static_info, meta_info = read_from_csv(track_file, static_tracks_file, recording_meta_file)
-        all_tracks.extend(tracks)
-        all_static_info.extend(static_info)
-        all_meta_info.extend(meta_info)
+    recordings = []
+    for track_file, tracks_meta_file, recording_meta_file in zip(tracks_files,
+                                                                 tracks_meta_files,
+                                                                 recording_meta_files):
+        logger.info("Loading csv files {}, {} and {}", track_file, tracks_meta_file, recording_meta_file)
+        tracks, tracks_meta, recording_meta = read_from_csv(track_file, tracks_meta_file, recording_meta_file)
+        recordings.append({"tracks": tracks, "tracks_meta": tracks_meta, "recording_meta": recording_meta})
 
-    return all_tracks, all_static_info, all_meta_info
+    return recordings
 
 
-def read_from_csv(track_file, static_tracks_file, recordings_meta_file):
+def read_from_csv(tracks_file: str, tracks_meta_file: str,
+                  recording_meta_file: str, include_px_coordinates: bool=False) -> (list, list, dict):
     """
-    This method reads tracks including meta data for a single recording from csv files.
-
-    :param track_file: The input path for the tracks csv file.
-    :param static_tracks_file: The input path for the static tracks csv file.
-    :param recordings_meta_file: The input path for the recording meta csv file.
-    :return: tracks, static track info and recording info
+    This method reads tracks and meta data for a single recording from csv files
+    :param tracks_file: Path of a tracks csv file
+    :param tracks_meta_file: Path of a tracks meta csv file
+    :param recording_meta_file: Path of a recording meta csv file
+    :return: Tuple of (tracks, tracks meta, recording meta)
     """
-    static_info = read_static_info(static_tracks_file)
-    meta_info = read_meta_info(recordings_meta_file)
-    tracks = read_tracks(track_file, meta_info)
-    return tracks, static_info, meta_info
+    recording_meta = read_recording_meta(recording_meta_file)
+    tracks_meta = read_tracks_meta(tracks_meta_file)
+    tracks = read_tracks(tracks_file, recording_meta, include_px_coordinates)
+    return tracks, tracks_meta, recording_meta
 
 
-def read_tracks(track_file, meta_info):
-    # Read the csv file to a pandas dataframe
-    df = pandas.read_csv(track_file)
-
+def read_tracks(tracks_file: str, recording_meta: dict, include_px_coordinates: bool=False) -> List[dict]:
+    """
+    Read tracks from a csv file
+    :param tracks_file: Path of a tracks csv file
+    :param recording_meta: Loaded meta of the corresponding recording
+    :param include_px_coordinates: Set to true, if the tracks are used for the visualizer
+    :return: A list of tracks represented as dictionary each
+    """
     # To extract every track, group the rows by the track id
-    raw_tracks = df.groupby(["trackId"], sort=False)
-    ortho_px_to_meter = meta_info["orthoPxToMeter"]
+    raw_tracks = pandas.read_csv(tracks_file).groupby(["trackId"], sort=True)
+    ortho_px_to_meter = recording_meta["orthoPxToMeter"]
+
+    # Convert groups of rows to tracks
     tracks = []
     for track_id, track_rows in raw_tracks:
         track = track_rows.to_dict(orient="list")
 
-        # Convert scalars to single value and lists to numpy arrays
+        # Convert lists to numpy arrays
         for key, value in track.items():
             if key in ["trackId", "recordingId"]:
                 track[key] = value[0]
@@ -63,115 +67,99 @@ def read_tracks(track_file, meta_info):
                 track[key] = np.array(value)
 
         track["center"] = np.stack([track["xCenter"], track["yCenter"]], axis=-1)
-        track["bbox"] = calculate_rotated_bboxes(track["xCenter"], track["yCenter"],
-                                                 track["length"], track["width"],
-                                                 np.deg2rad(track["heading"]))
+        if np.count_nonzero(track["length"]) and np.count_nonzero(track["width"]):
+            # Only calculate bounding box of objects with a width and length (e.g. cars)
+            track["bbox"] = get_rotated_bbox(track["xCenter"], track["yCenter"],
+                                             track["length"], track["width"],
+                                             np.deg2rad(track["heading"]))
+        else:
+            track["bbox"] = None
 
-        # Create special version of some values needed for visualization
-        track["xCenterVis"] = track["xCenter"] / ortho_px_to_meter
-        track["yCenterVis"] = -track["yCenter"] / ortho_px_to_meter
-        track["centerVis"] = np.stack([track["xCenter"], -track["yCenter"]], axis=-1) / ortho_px_to_meter
-        track["widthVis"] = track["width"] / ortho_px_to_meter
-        track["lengthVis"] = track["length"] / ortho_px_to_meter
-        track["headingVis"] = track["heading"] * -1
-        track["headingVis"][track["headingVis"] < 0] += 360
-        track["bboxVis"] = calculate_rotated_bboxes(track["xCenterVis"], track["yCenterVis"],
+        if include_px_coordinates:
+            # As the tracks are given in utm coordinates, transform these to pixel coordinates for visualization
+            track["xCenterVis"] = track["xCenter"] / ortho_px_to_meter
+            track["yCenterVis"] = -track["yCenter"] / ortho_px_to_meter
+            track["centerVis"] = np.stack([track["xCenterVis"], track["yCenterVis"]], axis=-1)
+            track["widthVis"] = track["width"] / ortho_px_to_meter
+            track["lengthVis"] = track["length"] / ortho_px_to_meter
+            track["headingVis"] = track["heading"] * -1
+            track["headingVis"][track["headingVis"] < 0] += 360
+            if np.count_nonzero(track["length"]) and np.count_nonzero(track["width"]):
+                # Only calculate bounding box of objects with a width and length (e.g. cars)
+                track["bboxVis"] = get_rotated_bbox(track["xCenterVis"], track["yCenterVis"],
                                                     track["lengthVis"], track["widthVis"],
                                                     np.deg2rad(track["headingVis"]))
+            else:
+                track["bboxVis"] = None
 
         tracks.append(track)
     return tracks
 
 
-def read_static_info(static_tracks_file):
+def read_tracks_meta(tracks_meta_file: str) -> List[dict]:
     """
-    This method reads the static info file from highD data.
-
-    :param static_tracks_file: the input path for the static csv file.
-    :return: the static dictionary - the key is the track_id and the value is the corresponding data for this track
+    Read tracks meta from a csv file
+    :param tracks_meta_file: Path of a tracks meta csv file
+    :return: List of tracks meta represented as dictionary each
     """
-    return pandas.read_csv(static_tracks_file).to_dict(orient="records")
+    return sorted(pandas.read_csv(tracks_meta_file).to_dict(orient="records"), key=lambda entry: entry["trackId"])
 
 
-def read_meta_info(recordings_meta_file):
+def read_recording_meta(recording_meta_file: str) -> dict:
     """
-    This method reads the recording info file from ind data.
-
-    :param recordings_meta_file: the path for the recording meta csv file.
-    :return: the meta dictionary
+    Read recording meta from a csv file
+    :param recording_meta_file: Path of a recording meta csv file
+    :return: Dictionary of the recording meta
     """
-    return pandas.read_csv(recordings_meta_file).to_dict(orient="records")[0]
+    return pandas.read_csv(recording_meta_file).to_dict(orient="records")[0]
 
 
-def calculate_rotated_bboxes(center_points_x, center_points_y, length, width, rotation=0):
+def get_rotated_bbox(x_center: np.ndarray, y_center: np.ndarray,
+                     length: np.ndarray, width: np.ndarray, heading: np.ndarray) -> np.ndarray:
     """
-    Calculate bounding box vertices from centroid, width and length.
+    Calculate the corners of a rotated bbox from the position, shape and heading for every timestamp.
 
-    :param centroid: center point of bbox
-    :param length: length of bbox
-    :param width: width of bbox
-    :param rotation: rotation of main bbox axis (along length)
-    :return:
+    :param x_center: x coordinates of the object center positions [num_timesteps]
+    :param y_center: y coordinates of the object center positions [num_timesteps]
+    :param length: objects lengths [num_timesteps]
+    :param width: object widths [num_timesteps]
+    :param heading: object heading (rad) [num_timesteps]
+    :return: Numpy array in the shape [num_timesteps, 4 (corners), 2 (dimensions)]
     """
+    centroids = np.column_stack([x_center, y_center])
 
-    centroid = np.array([center_points_x, center_points_y]).transpose()
+    # Precalculate all components needed for the corner calculation
+    l = length / 2
+    w = width / 2
+    c = np.cos(heading)
+    s = np.sin(heading)
 
-    centroid = np.array(centroid)
-    if centroid.shape == (2,):
-        centroid = np.array([centroid])
+    lc = l * c
+    ls = l * s
+    wc = w * c
+    ws = w * s
 
-    # Preallocate
-    data_length = centroid.shape[0]
-    rotated_bbox_vertices = np.empty((data_length, 4, 2))
+    # Calculate all four rotated bbox corner positions assuming the object is located at the origin.
+    # To do so, rotate the corners at [+/- length/2, +/- width/2] as given by the orientation.
+    # Use a vectorized approach using precalculated components for maximum efficiency
+    rotated_bbox_vertices = np.empty((centroids.shape[0], 4, 2))
 
-    # Calculate rotated bounding box vertices
-    rotated_bbox_vertices[:, 0, 0] = -length / 2
-    rotated_bbox_vertices[:, 0, 1] = -width / 2
+    # Front-right corner
+    rotated_bbox_vertices[:, 0, 0] = lc - ws
+    rotated_bbox_vertices[:, 0, 1] = ls + wc
 
-    rotated_bbox_vertices[:, 1, 0] = length / 2
-    rotated_bbox_vertices[:, 1, 1] = -width / 2
+    # Rear-right corner
+    rotated_bbox_vertices[:, 1, 0] = -lc - ws
+    rotated_bbox_vertices[:, 1, 1] = -ls + wc
 
-    rotated_bbox_vertices[:, 2, 0] = length / 2
-    rotated_bbox_vertices[:, 2, 1] = width / 2
+    # Rear-left corner
+    rotated_bbox_vertices[:, 2, 0] = -lc + ws
+    rotated_bbox_vertices[:, 2, 1] = -ls - wc
 
-    rotated_bbox_vertices[:, 3, 0] = -length / 2
-    rotated_bbox_vertices[:, 3, 1] = width / 2
+    # Front-left corner
+    rotated_bbox_vertices[:, 3, 0] = lc + ws
+    rotated_bbox_vertices[:, 3, 1] = ls - wc
 
-    for i in range(4):
-        th, r = cart2pol(rotated_bbox_vertices[:, i, :])
-        rotated_bbox_vertices[:, i, :] = pol2cart(th + rotation, r).squeeze()
-        rotated_bbox_vertices[:, i, :] = rotated_bbox_vertices[:, i, :] + centroid
-
+    # Move corners of rotated bounding box from the origin to the object's location
+    rotated_bbox_vertices = rotated_bbox_vertices + np.expand_dims(centroids, axis=1)
     return rotated_bbox_vertices
-
-
-def cart2pol(cart):
-    """
-    Transform cartesian to polar coordinates.
-    :param cart: Nx2 ndarray
-    :return: 2 Nx1 ndarrays
-    """
-    if cart.shape == (2,):
-        cart = np.array([cart])
-
-    x = cart[:, 0]
-    y = cart[:, 1]
-
-    th = np.arctan2(y, x)
-    r = np.sqrt(np.power(x, 2) + np.power(y, 2))
-    return th, r
-
-
-def pol2cart(th, r):
-    """
-    Transform polar to cartesian coordinates.
-    :param th: Nx1 ndarray
-    :param r: Nx1 ndarray
-    :return: Nx2 ndarray
-    """
-
-    x = np.multiply(r, np.cos(th))
-    y = np.multiply(r, np.sin(th))
-
-    cart = np.array([x, y]).transpose()
-    return cart

@@ -1,96 +1,114 @@
+import argparse
 import os
 import sys
-import glob
-import argparse
 
 from loguru import logger
+
+from track_visualizer import TrackVisualizer, DataError
 from tracks_import import read_from_csv
-from track_visualizer import TrackVisualizer
 
 
 def create_args():
-    config_specification = argparse.ArgumentParser(description="ParameterOptimizer")
-    # --- Input paths ---
-    config_specification.add_argument('--input_path', default="../data/",
-                                      help="Dir with track files", type=str)
-    config_specification.add_argument('--recording_name', default="00",
-                                      help="Choose recording name.", type=str)
+    cs = argparse.ArgumentParser(description="Dataset Tracks Visualizer")
+    # --- Input ---
+    cs.add_argument('--dataset_dir', default="../data/",
+                    help="Path to directory that contains the dataset csv files.", type=str)
+    cs.add_argument('--dataset', default="exid",
+                    help="Name of the dataset. Needed to apply dataset specific visualization adjustments.",
+                    type=str)
+    cs.add_argument('--recording', default="26",
+                    help="Name of the recording given by a number with a leading zero.", type=str)
+    cs.add_argument('--visualizer_params_dir', default="../data/visualizer_params/",
+                    help="Name of the recording given by a number with a leading zero.", type=str)
 
-    # --- Settings ---
-    config_specification.add_argument('--scale_down_factor', default=12,
-                                      help="Factor by which the tracks are scaled down to match a scaled down image.",
-                                      type=float)
     # --- Visualization settings ---
-    config_specification.add_argument('--skip_n_frames', default=5,
-                                      help="Skip n frames when using the second skip button.",
-                                      type=int)
-    config_specification.add_argument('--plotLaneIntersectionPoints', default=False,
-                                      help="Optional: decide whether to plot the direction triangle or not.",
-                                      type=bool)
-    config_specification.add_argument('--plotBoundingBoxes', default=True,
-                                      help="Optional: decide whether to plot the bounding boxes or not.",
-                                      type=bool)
-    config_specification.add_argument('--plotDirectionTriangle', default=True,
-                                      help="Optional: decide whether to plot the direction triangle or not.",
-                                      type=bool)
-    config_specification.add_argument('--plotTrackingLines', default=True,
-                                      help="Optional: decide whether to plot the direction lane intersection points or not.",
-                                      type=bool)
-    config_specification.add_argument('--plotFutureTrackingLines', default=True,
-                                      help="Optional: decide whether to plot the tracking lines or not.",
-                                      type=bool)
-    config_specification.add_argument('--showTextAnnotation', default=True,
-                                      help="Optional: decide whether to plot the text annotation or not.",
-                                      type=bool)
-    config_specification.add_argument('--showClassLabel', default=True,
-                                      help="Optional: decide whether to show the class in the text annotation.",
-                                      type=bool)
-    config_specification.add_argument('--showVelocityLabel', default=True,
-                                      help="Optional: decide whether to show the velocity in the text annotation.",
-                                      type=bool)
-    config_specification.add_argument('--showRotationsLabel', default=False,
-                                      help="Optional: decide whether to show the rotation in the text annotation.",
-                                      type=bool)
-    config_specification.add_argument('--showAgeLabel', default=False,
-                                      help="Optional: decide whether to show the current age of the track the text annotation.",
-                                      type=bool)
+    cs.add_argument('--playback_speed', default=4,
+                    help="During playback, only consider every nth frame. This option also applies to the outer"
+                         "backward/forward jump buttons.",
+                    type=int)
+    cs.add_argument('--show_bounding_box', default=True,
+                    help="Plot the rotated bounding boxes of all vehicles. Please note, that for vulnerable road users,"
+                         " no bounding box is given.",
+                    type=str2bool)
+    cs.add_argument('--show_orientation', default=False,
+                    help="Indicate the orientation of all vehicles by triangles.",
+                    type=str2bool)
+    cs.add_argument('--show_trajectory', default=False,
+                    help="Show the trajectory up to the current frame for every track.",
+                    type=str2bool)
+    cs.add_argument('--show_future_trajectory', default=False,
+                    help="Show the remaining trajectory for every track.",
+                    type=str2bool)
+    cs.add_argument('--annotate_track_id', default=False,
+                    help="Annotate every track by its id.",
+                    type=str2bool)
+    cs.add_argument('--annotate_class', default=False,
+                    help="Annotate every track by its class label.",
+                    type=str2bool)
+    cs.add_argument('--annotate_speed', default=False,
+                    help="Annotate every track by its current speed.",
+                    type=str2bool)
+    cs.add_argument('--annotate_orientation', default=False,
+                    help="Annotate every track by its current orientation.",
+                    type=str2bool)
+    cs.add_argument('--annotate_age', default=False,
+                    help="Annotate every track by its current age.",
+                    type=str2bool)
+    cs.add_argument('--show_maximized', default=False,
+                    help="Show the track Visualizer maximized. Might affect performance.",
+                    type=str2bool)
 
-    parsed_config_specification = vars(config_specification.parse_args())
-    return parsed_config_specification
+    return vars(cs.parse_args())
 
 
-if __name__ == '__main__':
+def main():
     config = create_args()
 
-    input_root_path = config["input_path"]
-    recording_name = config["recording_name"]
+    dataset_dir = config["dataset_dir"]
+    recording = config["recording"]
 
-    if recording_name is None:
+    if recording is None:
         logger.error("Please specify a recording!")
         sys.exit(1)
 
-    # Search csv files
-    tracks_files = glob.glob(input_root_path + recording_name + "*_tracks.csv")
-    static_tracks_files = glob.glob(input_root_path + recording_name + "*_tracksMeta.csv")
-    recording_meta_files = glob.glob(input_root_path + recording_name + "*_recordingMeta.csv")
-    if len(tracks_files) == 0 or len(static_tracks_files) == 0 or len(recording_meta_files) == 0:
-        logger.error("Could not find csv files for recording {} in {}. Please check parameters and path!",
-                     recording_name, input_root_path)
-        sys.exit(1)
+    recording = "{:02d}".format(int(recording))
+
+    logger.info("Loading recording {} from dataset {}", recording, config["dataset"])
+
+    # Create paths to csv files
+    tracks_file = dataset_dir + recording + "_tracks.csv"
+    tracks_meta_file = dataset_dir + recording + "_tracksMeta.csv"
+    recording_meta_file = dataset_dir + recording + "_recordingMeta.csv"
 
     # Load csv files
-    logger.info("Loading csv files {}, {} and {}", tracks_files[0], static_tracks_files[0], recording_meta_files[0])
-    tracks, static_info, meta_info = read_from_csv(tracks_files[0], static_tracks_files[0], recording_meta_files[0])
-    if tracks is None:
-        logger.error("Could not load csv files!")
-        sys.exit(1)
+    logger.info("Loading csv files {}, {} and {}", tracks_file, tracks_meta_file, recording_meta_file)
+    tracks, static_info, meta_info = read_from_csv(tracks_file, tracks_meta_file, recording_meta_file,
+                                                   include_px_coordinates=True)
 
     # Load background image for visualization
-    background_image_path = input_root_path + recording_name + "_background.png"
+    background_image_path = dataset_dir + recording + "_background.png"
     if not os.path.exists(background_image_path):
-        logger.warning("No background image {} found. Fallback using a black background.".format(background_image_path))
+        logger.warning("Background image {} missing. Fallback to using a black background.", background_image_path)
         background_image_path = None
     config["background_image_path"] = background_image_path
 
-    visualization_plot = TrackVisualizer(config, tracks, static_info, meta_info)
-    visualization_plot.show()
+    try:
+        visualization_plot = TrackVisualizer(config, tracks, static_info, meta_info)
+        visualization_plot.show()
+    except DataError:
+        sys.exit(1)
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+if __name__ == '__main__':
+    main()
