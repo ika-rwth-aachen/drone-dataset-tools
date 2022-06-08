@@ -1,0 +1,16 @@
+{
+  "datasets": {
+    "ind": {
+      "scale_down_factor": 12
+    },
+    "round": {
+      "scale_down_factor": 10
+    },
+    "unid": {
+      "scale_down_factor": 2
+    },
+    "exid": {
+      "scale_down_factor": 6
+    }
+  }
+}
