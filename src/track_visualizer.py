@@ -171,6 +171,7 @@ class TrackVisualizer(object):
         self.track_animation = animation.FuncAnimation(self.fig, self._update_figure, interval=20, blit=True,
                                                        init_func=self._clear_figure, cache_frame_data=False)
 
+        
         # Add listener to figure so that clicks on tracks open a plot window
         self.fig.canvas.mpl_connect('pick_event', self._open_track_plots_window)
 
@@ -191,7 +192,9 @@ class TrackVisualizer(object):
         :param args: Should be unused if called manually. If called by FuncAnimation, args contains a call counter.
         :return: List of artist handles that have been updated. Needed for blitting.
         """
-
+        # if self.animation_running == False:
+        #     self._clear_figure()
+        #     return self.plot_handles
         # Detect if the function was called manually (as FuncAnimation always adds a call counter). If the function
         # is called manually, draw all objects directly.
         animate = len(args) != 0
@@ -208,6 +211,9 @@ class TrackVisualizer(object):
             track_meta = self.tracks_meta[track_idx]
             initial_frame = track_meta["initialFrame"]
             current_index = self.current_frame - initial_frame
+
+            # print("track_id", track_id)
+            # print("current_index", current_index)
 
             object_class = track_meta["class"]
             if track["bboxVis"] is not None:
@@ -318,12 +324,17 @@ class TrackVisualizer(object):
                                            fontsize=12, color="white", animated=animate)
         plot_handles.append(label_current_frame)
 
+        # we are gonna jump to the next frame with pedestrian
+        
+
         # Update current frame
         if self.current_frame == self.maximum_frame:
             self.current_frame = self.minimum_frame
         elif self.animation_running:
             # This is the "play-speed"
             self.current_frame = min(self.current_frame + self.playback_speed, self.maximum_frame)
+            
+            print("current_frame", self.current_frame)
 
             # Update the textbox to new current frame
             self.textbox_frame.set_val(self.current_frame)
@@ -428,6 +439,7 @@ class TrackVisualizer(object):
             self._set_controls_activation(True)
 
     def _reset(self, _):
+        
         self.ax_button_play.images[0].set_data(self.play_image)
         self.button_play.canvas.draw_idle()
         self._set_controls_activation(True)
