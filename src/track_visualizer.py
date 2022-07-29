@@ -604,7 +604,7 @@ class TrackVisualizer(object):
     def getNextFrame(self, curFrame):
 
         if self.config['ped_only']:
-            return self.getNextFrameWithPedestrians(curFrame)
+            return self.getNextFrameWithPedestrians(curFrame, self.playback_speed)
 
         if self.current_frame == self.maximum_frame:
             return self.minimum_frame
