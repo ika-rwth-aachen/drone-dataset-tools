@@ -4,3 +4,4 @@ numpy
 matplotlib>=3.0.1
 opencv-python
 pyqt5
+sortedcontainers>=2.4.0

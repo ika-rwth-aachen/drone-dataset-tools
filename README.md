@@ -85,6 +85,7 @@ All available options are listed in the following table:
 | `--annotate_orientation`    | `False`           | Annotate every track by its current orientation. | 
 | `--annotate_age`            | `False`           | Annotate every track by its current age. | 
 | `--show_maximized`          | `False`           | Show the track Visualizer maximized. Might affect performance. | 
+| `--ped_only`                | `False`           | Only render frames with pedestrians and a button to jump to the next pedestrian's initial frame. | 
 
 *Please note that drawing additional features may decrease the playback animation update rate.*
 
