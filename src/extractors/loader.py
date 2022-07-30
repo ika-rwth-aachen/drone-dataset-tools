@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import List, Dict
-from os import path
+from os import path, listdir
 
 from sortedcontainers import SortedList
 
@@ -15,23 +15,28 @@ class Loader:
         self.name = name
         pass
 
-    def getLocationMeta(self):
+    def getAllLocationsMeta(self):
         """
         returns a list of maps. Each map has a set of recording ids, one background image
         """
-        return None
+        files = [path.join(self.directory, f) for f in listdir(self.directory) if 'recordingMeta' in f]
+        print(files)
+        
+        meta = list( map(lambda f: pd.read_csv(f).to_dict(orient="records")[0], files))
 
-    def getRecordingData(self, recordId):
+        return meta
+
+    def getRecordingData(self, recordingId):
         """_summary_
 
         Args:
-            recordId (_type_): index of the recording
+            recordingId (_type_): index of the recording
         Returns:
             tracksDf, tracksMetaDf, recordingMetaDf
         """
-        rMetaFile = path.join(self.directory, f'{recordId}_recordingMeta.csv')
-        tMetaFile = path.join(self.directory, f'{recordId}_tracksMeta.csv')
-        tracksFile = path.join(self.directory, f'{recordId}_tracks.csv')
+        rMetaFile = path.join(self.directory, f'{recordingId}_recordingMeta.csv')
+        tMetaFile = path.join(self.directory, f'{recordingId}_tracksMeta.csv')
+        tracksFile = path.join(self.directory, f'{recordingId}_tracks.csv')
         recordingMetaDf = pd.read_csv(rMetaFile)
         tracksMetaDf = pd.read_csv(tMetaFile)
         tracksDf = pd.read_csv(tracksFile)
@@ -55,4 +60,17 @@ class Loader:
         returns a single DataFrame with all the pedestrian records
         """
         return pd.concat(rDf)
+
+    
+    def getAllPedData(self):
+        meta = self.getAllLocationsMeta()
+        pedDfs = []
+        for tMeta in meta:
+            recordingId = tMeta['recordingId']
+            tracksDf, tracksMetaDf, recordingMetaDf = self.getRecordingData(recordingId)
+            pedDfs.append(self.extractPedFrames(tracksMetaDf, tracksDf))
+        
+        return self.mergePedFrames(pedDfs)
+
+
         
