@@ -18,7 +18,7 @@ from matplotlib.widgets import Button, TextBox
 
 
 class TrackVisualizer(object):
-    def __init__(self, config, tracks: List[dict], tracks_meta: List[dict], recording_meta: List[dict]):
+    def __init__(self, config: dict, tracks: List[dict], tracks_meta: List[dict], recording_meta: dict):
         self.config = config
         self.input_path = config["dataset_dir"]
         self.dataset = config["dataset"].lower()
@@ -119,10 +119,20 @@ class TrackVisualizer(object):
             self.background_image = np.zeros((self.image_height, self.image_width, 3), dtype="uint8")
         self.ax.imshow(self.background_image)
 
+        # Find correct text font size
+        track_label_font_size = 4
+        if "orthoPxToMeter" in recording_meta:
+            if recording_meta["orthoPxToMeter"] < 0.1:
+                # For an urban area, we need smaller font sizes because the relevant areas are smaller
+                track_label_font_size = 4
+            else:
+                # For highway areas, we need bigger font sizes because the relevant areas are bigger
+                track_label_font_size = 6
+
         # Dictionaries for the style of the different objects that are visualized
         self.bbox_style = dict(fill=True, alpha=0.4, zorder=19)
         self.orientation_style = dict(facecolor="k", fill=True, edgecolor="k", lw=0.1, alpha=0.6, zorder=20)
-        self.text_style = dict(picker=True, size=4, color='k', zorder=22, ha="center")
+        self.text_style = dict(picker=True, size=track_label_font_size, color='k', zorder=22, ha="center")
         self.text_box_style = dict(boxstyle="round,pad=0.2", alpha=.6, ec="black", lw=0.2, zorder=21)
         self.trajectory_style = dict(linewidth=1, zorder=10)
         self.future_trajectory_style = dict(color="linen", linewidth=1, alpha=0.7, zorder=10)

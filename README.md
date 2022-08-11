@@ -7,12 +7,12 @@ Thus, this source code not only allows to visualize trajectories and thus get an
 ## Installation and Quick Start
 
 1. Create a new Python environment or select a pre-existing one. 
-   This code is tested with Python 3.6, but is very probably compatible with newer releases of Python.
+   This code is tested with Python 3.8, but is very probably compatible with newer releases of Python.
 
    If you use Anaconda3, this can be done as follows:
    ```shell 
-   conda create --name drone-dataset-tools36 python=3.6
-   conda activate drone-dataset-tools36
+   conda create --name drone-dataset-tools38 python=3.8
+   conda activate drone-dataset-tools38
    ```
 
 2. Install required packages by navigating to the root directory and using
