@@ -29,7 +29,7 @@ Thus, this source code not only allows to visualize trajectories and thus get an
    ```
    or you can skip the data copying and directly provide the path to the dataset's `data/` directory by using the `--dataset_dir` command line option:
    ```shell
-   python3 run_track_visualization.py --dataset_dir /<path/to>/exiD-dataset-v1.2/data/ --dataset exid --recording 26
+   python3 run_track_visualization.py --dataset_dir /<path/to>/exiD-dataset-v2.0/data/ --dataset exid --recording 26
    ```
    See below for further explanations.
 
@@ -42,26 +42,30 @@ or for all recordings (`read_all_recordings_from_csv(base_path)`).
 
 ## Visualizer
 The visualizer imports the data and visualizes them on an image of the recording site.
-The user may visualize specific frames or just playback the recorded tracks. In addition, information like the track id or speeds may be displayed (see "Command-line Options"). 
-By clicking on track, a separate window is created with plots of the clicked track's positions, headings, velocities and accelerations.
+The user may visualize specific frames or just playback the recorded tracks. In addition, information like the track id or speeds may be displayed (see "Command-line Options").
 
 Each road user class has its own color: cars are light blue, vans are purple, buses are orange, trucks are orange, pedestrians are red, 
 bicycles are yellow and motorcycles are yellow.
+
+!["Screenshot of track visualization"](doc/screenshot_track_visualization.png "Screenshot of track visualization")
+
+By clicking on track, a separate window is created with plots of the clicked track's positions, headings, velocities and accelerations.
+* If additional columns (i.a. `leadDHW`, `leadTTC`, ...) are present in the `*_tracks.csv`, these are shown in the pop-up window instead.
+* If *surrounding vehicle ID* columns (i.e. `leadId`, `rearId`, ...) are present in the `*_tracks.csv`, the corresponding vehicles are colored in the visualization. These are also updated during playback.<br />
+(Hint: Use the `--suppress_track_window` argument to quickly check the surrounding vehicles of several tracks without opening a lot of track windows)
 
 The following shortcuts are currently implemented:
 
 | Keyboard Shortcut | Description |
 | ---           | --- |
 | space         | Play/Stop the playback |
-| right arrow   | Jump to previous frame |
-| left arrow    | Jump to next frame |
-
-!["Screenshot of track visualization"](doc/screenshot_track_visualization.png "Screenshot of track visualization")
+| right arrow   | Jump to next frame |
+| left arrow    | Jump to previous frame |
 
 ### Command-line Options
 The command-line options can be used when starting the `run_track_visualization.py` script. 
 For example, run the following command from 
-the `src` directory to start the visualization of recording 26.
+the `src` directory to start the visualization of recording 26, when the dataset is present in the `data/` folder.
 ```shell
 python3 run_track_visualization.py --dataset exid --recording 26 
 ```
@@ -75,6 +79,7 @@ All available options are listed in the following table:
 | `--dataset`                 | `exid` | Name of the dataset (ind, round, exid, unid). Needed to apply dataset specific visualization adjustments. |
 | `--recording`               | `26`            | Name of the recording given by a number with a leading zero. | 
 | `--playback_speed`          | `4`               | During playback, only consider every nth frame. | 
+| `--suppress_track_window`   | `False`           | Do not show the track window when clicking on a track. Only surrounding vehicle colors are displayed. | 
 | `--show_bounding_box`       | `False`           | Plot the rotated bounding boxes of all vehicles.  Please note, that for vulnerable road users, no bounding box is given. |  
 | `--show_orientation`        | `False`           | Indicate the orientation of all vehicles by triangles. | 
 | `--show_trajectory`         | `False`           | Show the trajectory up to the current frame for every track. | 
@@ -117,5 +122,7 @@ If you use one of our datasets or these scripts in your work, please cite our da
                title={The exiD Dataset: A Real-World Trajectory Dataset of Highly Interactive Highway Scenarios in Germany},
                author={Moers, Tobias and Vater, Lennart and Krajewski, Robert and Bock, Julian and Zlocki, Adrian and Eckstein, Lutz},
                booktitle={2022 IEEE Intelligent Vehicles Symposium (IV)},
-               year={2022}}
+               pages={958-964},
+               year={2022},
+               doi={10.1109/IV51971.2022.9827305}}
 ```
