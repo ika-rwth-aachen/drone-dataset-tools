@@ -116,3 +116,6 @@ def str2bool(v):
 
 if __name__ == '__main__':
     main()
+
+
+# python run_track_visualization.py --dataset_dir "G:/AV datasets/inD-dataset-v1.0/data/" --dataset "inD" --recording 30 --ped_only True

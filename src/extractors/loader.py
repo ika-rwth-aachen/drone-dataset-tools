@@ -55,6 +55,10 @@ class Loader:
         return self.locationToRecordingIds[locationId]
     
 
+    def getBackgroundImagePath(self, recordingId):
+        return path.join(self.directory, f'{recordingId}_background.png')
+    
+
     def getRecordingData(self, recordingId):
         """_summary_
 
@@ -66,13 +70,13 @@ class Loader:
         rMetaFile = path.join(self.directory, f'{recordingId}_recordingMeta.csv')
         tMetaFile = path.join(self.directory, f'{recordingId}_tracksMeta.csv')
         tracksFile = path.join(self.directory, f'{recordingId}_tracks.csv')
-        recordingMetaDf = pd.read_csv(rMetaFile)
+        recordingMeta = pd.read_csv(rMetaFile).to_dict(orient="records")[0]
         tracksMetaDf = pd.read_csv(tMetaFile)
         tracksDf = pd.read_csv(tracksFile)
 
         self.addUniqueTrackIds(tracksDf)        
 
-        return tracksDf, tracksMetaDf, recordingMetaDf
+        return tracksDf, tracksMetaDf, recordingMeta
 
     def addUniqueTrackIds(self, tracksDf):
         tracksDf["uniqueTrackId"] = tracksDf["recordingId"].astype(str) + '-' + tracksDf["trackId"].astype(str) 
