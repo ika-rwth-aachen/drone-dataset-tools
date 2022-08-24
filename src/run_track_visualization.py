@@ -118,4 +118,4 @@ if __name__ == '__main__':
     main()
 
 
-# python run_track_visualization.py --dataset_dir "G:/AV datasets/inD-dataset-v1.0/data/" --dataset "inD" --recording 7 --ped_only True --annotate_track_id True --show_trajectory True
+# python run_track_visualization.py --dataset_dir "G:/AV datasets/inD-dataset-v1.0/data/" --dataset "inD" --recording 18 --ped_only True --annotate_track_id True --show_trajectory True
