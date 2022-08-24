@@ -121,6 +121,7 @@ class TrackVisualizer(object):
         self.ax_button_reset = self.fig.add_axes([0.67, 0.035, 0.06, 0.04])
 
         if config['ped_only']:
+            self.ax_textbox_ped = self.fig.add_axes([0.22, 0.035, 0.04, 0.04])
             self.ax_button_nextPed = self.fig.add_axes([0.74, 0.035, 0.09, 0.04])
 
         # Define the widgets
@@ -146,6 +147,7 @@ class TrackVisualizer(object):
         self.button_play.ax.axis('off')
         self.button_reset = Button(self.ax_button_reset, 'Reset')
         if config['ped_only']:
+            self.textbox_ped = TextBox(self.ax_textbox_ped, 'Ped ', initial=str(self.minimum_frame))
             self.button_nextPed = Button(self.ax_button_nextPed, 'Next Ped')
 
         # Define the callbacks for the widgets' actions
@@ -410,6 +412,17 @@ class TrackVisualizer(object):
             else:
                 logger.warning("The entered frame does not exist. Maximum frame is {}.", self.maximum_frame)
 
+        if self.textbox_ped.capturekeystrokes:
+            if evt.key != "enter":
+                return
+
+            try:
+                pedId = int(self.textbox_ped.text)
+                self.jumpToPed(pedId)
+            except ValueError:
+                return
+
+
         # Time navigation for left and right arrow, fast backward and fast forward
         if evt.key == "right" and self.current_frame + self.playback_speed < self.maximum_frame:
             self.current_frame = self.current_frame + self.playback_speed
@@ -602,6 +615,12 @@ class TrackVisualizer(object):
 
         if running:
             self._start_stop_animation(None)
+    
+    def jumpToPed(self, pedId):
+        """
+        jumps to the ped with id in box 
+        """
+        self.current_frame = self.getInitiaFrameFor(pedId)
 
 
     def getNextFrame(self, curFrame):
@@ -627,6 +646,21 @@ class TrackVisualizer(object):
                 frames.add((track['initialFrame'], track['finalFrame']))
                 
         return frames
+
+    def getPedIds(self):
+        ids = []
+        for track in self.tracks_meta:
+            if track['class'] == 'pedestrian':
+                ids.append(track['trackId'])
+        return ids
+    
+    def getInitiaFrameFor(self, trackId):
+        for track in self.tracks_meta:
+            if track['trackId'] == trackId:
+                return track['initialFrame']
+        return 0
+
+
 
     def getNextFrameWithPedestrians(self, curFrame, skip=1):
         # TODO use bijection for faster performance. use sorted containers.
