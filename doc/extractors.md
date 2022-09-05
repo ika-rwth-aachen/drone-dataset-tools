@@ -1,4 +1,5 @@
 # Using loader
+[Loader example notebook](../src/notebooks/extractor-test.ipynb)
 
 The loader has some helper methods that add more annotations and filters to the datasets. 
 
