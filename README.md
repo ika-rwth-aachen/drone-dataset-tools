@@ -1,9 +1,12 @@
 # Drone-Dataset Tools
 
+
 The goal of this repository is to make using [drone datasets](https://www.drone-dataset.com/) as easy as possible. 
 Therefore, we provide source code in Python for import and visualization. 
 Thus, this source code not only allows to visualize trajectories and thus get an overview, but also serves as a template for your own projects.
 
+## Extractor documentation:
+Read the documentation [here](./extractors/readme.md) for the extractor API.
 ## Installation and Quick Start
 
 1. Create a new Python environment or select a pre-existing one. 

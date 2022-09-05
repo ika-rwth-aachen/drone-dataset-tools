@@ -3,6 +3,7 @@ from typing import List, Dict
 from os import path, listdir
 
 from sortedcontainers import SortedList
+from .RecordingData import RecordingData
 
 class Loader:
 
@@ -74,12 +75,14 @@ class Loader:
         tracksMetaDf = pd.read_csv(tMetaFile)
         tracksDf = pd.read_csv(tracksFile)
 
-        self.addUniqueTrackIds(tracksDf)        
+        self.addUniqueTrackIds(tracksDf)      
 
-        return tracksDf, tracksMetaDf, recordingMeta
+        return RecordingData(recordingId, recordingMeta, tracksMetaDf, tracksDf)
+
+        # return tracksDf, tracksMetaDf, recordingMeta
 
     def addUniqueTrackIds(self, tracksDf):
-        tracksDf["uniqueTrackId"] = tracksDf["recordingId"].astype(str) + '-' + tracksDf["trackId"].astype(str) 
+        tracksDf["uniqueTrackId"] = tracksDf["recordingId"] * 1000 + tracksDf["trackId"]
     
     def extractPedFrames(self, tracksMetaDf, tracksDf):
         # return frames with pedestrians only
