@@ -26,6 +26,10 @@ def create_args():
                     help="During playback, only consider every nth frame. This option also applies to the outer"
                          "backward/forward jump buttons.",
                     type=int)
+    cs.add_argument('--suppress_track_window', default=False,
+                    help="Do not show the track window when clicking on a track. Only surrounding vehicle colors are"
+                         " displayed.",
+                    type=str2bool)
     cs.add_argument('--show_bounding_box', default=True,
                     help="Plot the rotated bounding boxes of all vehicles. Please note, that for vulnerable road users,"
                          " no bounding box is given.",
@@ -39,7 +43,7 @@ def create_args():
     cs.add_argument('--show_future_trajectory', default=False,
                     help="Show the remaining trajectory for every track.",
                     type=str2bool)
-    cs.add_argument('--annotate_track_id', default=False,
+    cs.add_argument('--annotate_track_id', default=True,
                     help="Annotate every track by its id.",
                     type=str2bool)
     cs.add_argument('--annotate_class', default=False,
@@ -68,7 +72,7 @@ def create_args():
 def main():
     config = create_args()
 
-    dataset_dir = config["dataset_dir"]
+    dataset_dir = config["dataset_dir"] + "/"
     recording = config["recording"]
 
     if recording is None:

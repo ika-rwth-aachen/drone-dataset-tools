@@ -1,4 +1,6 @@
 import matplotlib
+from matplotlib.backend_bases import MouseButton
+
 matplotlib.use('qt5agg')
 
 import json
@@ -8,6 +10,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+from typing import List
 
 from loguru import logger
 from matplotlib import animation
@@ -17,10 +20,11 @@ from sortedcontainers import SortedList
 
 
 class TrackVisualizer(object):
-    def __init__(self, config, tracks, tracks_meta, recording_meta):
+    def __init__(self, config: dict, tracks: List[dict], tracks_meta: List[dict], recording_meta: dict):
         self.config = config
         self.input_path = config["dataset_dir"]
         self.dataset = config["dataset"].lower()
+        self.location_id = recording_meta["locationId"]
         self.recording_name = config["recording"]
         self.playback_speed = config["playback_speed"]
         self.pedestrianFrameRanges = 0 # range of frames having pedestrians.
@@ -30,6 +34,23 @@ class TrackVisualizer(object):
             self.pedestrianFrameRanges = self.getFramesWithPedestrians(tracks_meta)
             print(f'number of pedestrians {len(self.pedestrianFrameRanges)}')
             
+        self.suppress_track_window = config["suppress_track_window"]
+
+        # Currently clicked vehicle
+        self.clicked_track_id = None
+        # Color mapping for surrounding vehicles
+        self.surrounding_vehicles_colors = {
+            "leadId": "red",
+            "rightLeadId": "orange",
+            "rightAlongsideId": "black",
+            "rightRearId": "purple",
+            "rearId": "blue",
+            "leftRearId": "green",
+            "leftAlongsideId": "brown",
+            "leftLeadId": "yellow"
+        }
+        vehicle_keys = list(self.surrounding_vehicles_colors.keys())
+        self.surrounding_vehicles_ids = dict(zip(vehicle_keys, -1 * np.ones(len(vehicle_keys), dtype=int)))
 
         # Load dataset specific visualization parameters from file
         dataset_params_path = Path(config["visualizer_params_dir"]) / "visualizer_params.json"
@@ -71,7 +92,7 @@ class TrackVisualizer(object):
 
         # Create a mapping between frame and idxs of tracks for quick lookup during playback
         self.frame_to_track_idxs = {}
-        for i_frame in range(self.minimum_frame, self.maximum_frame+1):
+        for i_frame in range(self.minimum_frame, self.maximum_frame + 1):
             indices = [i_track for i_track, track_meta in enumerate(self.tracks_meta)
                        if track_meta["initialFrame"] <= i_frame <= track_meta["finalFrame"]]
             self.frame_to_track_idxs[i_frame] = indices
@@ -84,6 +105,13 @@ class TrackVisualizer(object):
         self.fig, self.ax = plt.subplots(1, 1)
         self.fig.set_size_inches(15, 8)
         plt.subplots_adjust(left=0.0, right=1.0, bottom=0.10, top=1.00)
+
+        # Remove unwanted toolbar buttons
+        toolbar = plt.get_current_fig_manager().toolbar
+        unwanted_buttons = ['Subplots', 'Save', 'Customize', 'Forward', 'Back']
+        for x in toolbar.actions():
+            if x.text() in unwanted_buttons:
+                toolbar.removeAction(x)
 
         self.fig.canvas.set_window_title("Tracks Visualizer - Dataset {}, Recording {}".format(self.dataset,
                                                                                                self.recording_name))
@@ -100,16 +128,33 @@ class TrackVisualizer(object):
             self.background_image = np.zeros((self.image_height, self.image_width, 3), dtype="uint8")
         self.ax.imshow(self.background_image)
 
+        # Find correct text font size
+        track_label_font_size = 4
+        if "orthoPxToMeter" in recording_meta:
+            if recording_meta["orthoPxToMeter"] < 0.1:
+                # For an urban area, we need smaller font sizes because the relevant areas are smaller
+                track_label_font_size = 4
+            else:
+                # For highway areas, we need bigger font sizes because the relevant areas are bigger
+                track_label_font_size = 6
+
         # Dictionaries for the style of the different objects that are visualized
-        self.bbox_style = dict(fill=True, edgecolor="k", alpha=0.4, zorder=19)
+        self.bbox_style = dict(fill=True, alpha=0.4, zorder=19)
         self.orientation_style = dict(facecolor="k", fill=True, edgecolor="k", lw=0.1, alpha=0.6, zorder=20)
-        self.text_style = dict(picker=True, size=8, color='k', zorder=22, ha="center")
+        self.text_style = dict(picker=True, size=track_label_font_size, color='k', zorder=22, ha="center")
         self.text_box_style = dict(boxstyle="round,pad=0.2", alpha=.6, ec="black", lw=0.2, zorder=21)
         self.trajectory_style = dict(linewidth=1, zorder=10)
         self.future_trajectory_style = dict(color="linen", linewidth=1, alpha=0.7, zorder=10)
         self.centroid_style = dict(fill=True, edgecolor="black", lw=0.1, alpha=1, radius=0.5, zorder=30)
-        self.class_colors = dict(car="lightblue", van="purple", truck_bus="orange", bus="orange", truck="orange",
-                                 pedestrian="red", bicycle="yellow", motorcycle="yellow", default="green")
+        # self.class_colors = dict(car="lightblue", van="purple", truck_bus="orange", bus="orange", truck="orange",
+        #                          pedestrian="red", bicycle="yellow", motorcycle="yellow", default="green")
+        self.class_colors = dict(car="lightblue", van="lightblue", truck_bus="lightblue", bus="lightblue",
+                                 truck="lightblue",
+                                 pedestrian="red", bicycle="lightblue", motorcycle="lightblue",
+                                 default="lightblue")
+
+        # Create legend
+        self.legend_visible = False
 
         # Define axes for the widgets
         self.ax_textbox = self.fig.add_axes([0.27, 0.035, 0.04, 0.04])
@@ -240,11 +285,32 @@ class TrackVisualizer(object):
 
             color = self.class_colors.get(object_class, self.class_colors["default"])
 
+            if self.clicked_track_id and track_id == self.clicked_track_id:
+                current_frame = self.current_frame - track_meta["initialFrame"]
+                self._find_surrounding_vehicles(current_frame, track, show_log=False)
+
             if self.config["show_bounding_box"]:
+                edge_color = None
+                bbox_color = color
+                for vehicle_key, vehicle_id in self.surrounding_vehicles_ids.items():
+                    if isinstance(vehicle_id, list) and track_id in vehicle_id:
+                        bbox_color = self.surrounding_vehicles_colors[vehicle_key]
+                        break
+                    elif vehicle_id == track_id:
+                        bbox_color = self.surrounding_vehicles_colors[vehicle_key]
+                        break
+
+                if track_id == self.clicked_track_id:
+                    edge_color = "red"
+
                 if bounding_box is not None:
-                    bbox = plt.Polygon(bounding_box, True, facecolor=color, **self.bbox_style)
+                    if edge_color is not None:
+                        bbox = plt.Polygon(bounding_box, True, facecolor=bbox_color, edgecolor=edge_color,
+                                           **self.bbox_style)
+                    else:
+                        bbox = plt.Polygon(bounding_box, True, facecolor=bbox_color, edgecolor="k", **self.bbox_style)
                 else:
-                    bbox = plt.Circle(center_point, radius=2, facecolor=color)
+                    bbox = plt.Circle(center_point, radius=2, facecolor=bbox_color)
 
                 bbox.set_animated(animate)
 
@@ -322,7 +388,7 @@ class TrackVisualizer(object):
                 annotation_text += "Age%d/%d" % (current_index + 1, age)
 
             if annotation_text:
-                text_patch = self.ax.text(center_point[0], center_point[1]-2.5, annotation_text,
+                text_patch = self.ax.text(center_point[0], center_point[1] - 2.5, annotation_text,
                                           bbox={"fc": color, **self.text_box_style}, animated=animate,
                                           **self.text_style)
 
@@ -466,11 +532,23 @@ class TrackVisualizer(object):
         self.current_frame = self.minimum_frame
         self.animation_running = False
 
+    def _show_legend(self):
+        if self.legend_visible:
+            return
+        label_boxes = []
+        for _, color in self.surrounding_vehicles_colors.items():
+            label_boxes.append(self.ax.bar([np.nan], [np.nan], color=color, edgecolor="k", **self.bbox_style))
+        self.ax.legend(label_boxes, self.surrounding_vehicles_colors.keys(), bbox_to_anchor=(1.05, 1), loc='upper left',
+                       borderaxespad=0.)
+        self.legend_visible = True
+
     def _open_track_plots_window(self, event):
         """
         Create and show a window visualizing the fields of a clicked track.
         """
-
+        # Restrict events to only left mouse clicks
+        if event.mouseevent.button != MouseButton.LEFT:
+            return
         # Get clicked artist and check if it belongs to a shown track
         artist = event.artist
         if "track_id" not in artist.__dict__:
@@ -502,6 +580,15 @@ class TrackVisualizer(object):
         x_limits = [initial_frame, final_frame]
         track_frames = np.linspace(initial_frame, final_frame, centroids.shape[1], dtype=np.int64)
 
+        max_relevant_lead_ttc = 10
+
+        current_local_frame = self.current_frame - track_meta["initialFrame"]
+        self.clicked_track_id = track_id
+        self._find_surrounding_vehicles(current_local_frame, track)
+
+        if self.suppress_track_window:
+            return
+
         # Create a new figure that pops up
         fig = plt.figure(np.random.randint(0, 5000, 1))
         fig.canvas.mpl_connect('close_event', lambda evt: self._on_close_track_plots_window(evt, track_id))
@@ -510,8 +597,27 @@ class TrackVisualizer(object):
         fig.canvas.set_window_title("Recording {}, Track {} ({})".format(self.recording_name,
                                                                          track_id, track_meta["class"]))
 
+        extra_plots = {
+            "leadId": "Lead Vehicle Presence (1=present)",
+            "leadDHW": "Lead Distance Headway [m]",
+            "lonVelocity": "Longitudinal-Velocity [m/s]",
+            "leadDV": "Lead Relative Velocity [m/s]",
+            "leadTTC": f"Lead Time-To-Collision [s] (capped at {max_relevant_lead_ttc}s)",
+            "lonAcceleration": "Longitudinal-Acceleration [m/s^2]"
+        }
+
+        extra_plots_available = all([track.get(extra_plot_key, None) is not None for extra_plot_key in extra_plots.keys()])
+        if not extra_plots_available:
+            extra_plots = {
+                "xVelocity": "X-Velocity [m/s]",
+                "yVelocity": "Y-Velocity [m/s]",
+                "xAcceleration": "Longitudinal-Velocity [m/s]",
+                "yAcceleration": "Y-Acceleration [m/s^2]",
+                "lonVelocity": "Longitudinal-Velocity [m/s]",
+                "lonAcceleration": "Longitudinal-Acceleration [m/s^2]"
+            }
+
         # Check availability of fields to create correct plot layout
-        extra_plots = ["xVelocity", "yVelocity", "xAcceleration", "yAcceleration", "lonVelocity", "lonAcceleration"]
         num_plots = 3
         for key in extra_plots:
             if track.get(key, None) is not None:
@@ -531,6 +637,8 @@ class TrackVisualizer(object):
             subplot_list.append(sub_plot)
             if borders is None:
                 borders = [np.amin(values), np.amax(values)]
+                borders[0] = borders[0] - np.sign(borders[0]) * 0.1 * borders[0]
+                borders[1] = borders[1] + np.sign(borders[1]) * 0.1 * borders[1]
             if borders[0] == borders[1]:
                 borders = [borders[0] - 0.1, borders[1] + 0.1]
             plt.plot(track_frames, values)
@@ -540,43 +648,92 @@ class TrackVisualizer(object):
             plt.ylim(borders)
             sub_plot.grid(True)
             plt.xlabel('Frame')
+            return sub_plot
 
-        create_subplot(subplot_index, "X-Position [m]", centroids[0, :])
+        if "traveledDistance" in track:
+            create_subplot(subplot_index, "Traveled Distance [m]", track["traveledDistance"])
+        else:
+            create_subplot(subplot_index, "X-Position [m]", centroids[0, :])
         subplot_index += 1
 
-        create_subplot(subplot_index, "Y-Position [m]", centroids[1, :])
+        if "latLaneCenterOffset" in track:
+            sub_plot = create_subplot(subplot_index, "Lateral Lane Center Offset [m]", track["latLaneCenterOffset"][:, 0])
+            if "laneChange" in track:
+                lane_change_signal = track["laneChange"]
+                lane_change_idcs = np.nonzero(lane_change_signal)
+                if lane_change_idcs:
+                    lane_change_idcs = lane_change_idcs[0].tolist()
+                for lane_change_idx in lane_change_idcs:
+                    sub_plot.plot(lane_change_idx + track_meta["initialFrame"], 0, "rx")
+                    sub_plot.text(lane_change_idx + track_meta["initialFrame"] + 1, 0.1, "LC")
+        else:
+            create_subplot(subplot_index, "Y-Position [m]", centroids[1, :])
         subplot_index += 1
 
         create_subplot(subplot_index, "Heading [deg]", np.unwrap(rotations, discont=360), borders=[-10, 400])
         subplot_index += 1
 
-        if track.get("xVelocity", None) is not None:
-            create_subplot(subplot_index, "X-Velocity [m/s]", track["xVelocity"])
-            subplot_index = subplot_index + 1
+        lead_id_changes = {}
+        if "leadId" in extra_plots:
+            lead_id_signal = track["leadId"]
+            lead_id_change_idcs = np.nonzero(np.diff(lead_id_signal))
+            if lead_id_change_idcs:
+                lead_id_change_idcs = (lead_id_change_idcs[0] + 1).tolist()
+            else:
+                lead_id_change_idcs = []
+            lead_id_change_idcs.append(0)
+            lead_id_changes = {lead_id_change_idx: lead_id_signal[lead_id_change_idx] for lead_id_change_idx in lead_id_change_idcs}
 
-        if track.get("yVelocity", None) is not None:
-            create_subplot(subplot_index, "Y-Velocity [m/s]", track["yVelocity"])
-            subplot_index = subplot_index + 1
+        for extra_plot_key, extra_plot_name in extra_plots.items():
+            if track.get(extra_plot_key, None) is not None:
+                plot_data = track[extra_plot_key]
+                borders = None
 
-        if track.get("lonVelocity", None) is not None:
-            create_subplot(subplot_index, "Longitudinal-Velocity [m/s]", track["lonVelocity"])
-            subplot_index = subplot_index + 1
+                if extra_plot_key == "leadId":
+                    plot_data = plot_data != -1
+                    borders = [-0.5, 1.5]
+                elif extra_plot_key == "leadTTC":
+                    # Cap TTC value
+                    plot_data[plot_data > max_relevant_lead_ttc] = max_relevant_lead_ttc
+                    borders = [-1.5, max_relevant_lead_ttc + 0.5]
+                elif extra_plot_key == "leadDV":
+                    if np.all(plot_data == -1000):
+                        borders = [0, 1]
+                    else:
+                        plot_data[plot_data == -1000] = np.nan
+                        borders = [np.nanmin(plot_data) - 0.5, np.nanmax(plot_data) + 0.5]
 
-        if track.get("xAcceleration", None) is not None:
-            create_subplot(subplot_index, "X-Acceleration [m/s^2]", track["xAcceleration"])
-            subplot_index = subplot_index + 1
+                sub_plot = create_subplot(subplot_index, extra_plot_name, plot_data, borders)
+                subplot_index = subplot_index + 1
 
-        if track.get("yAcceleration", None) is not None:
-            create_subplot(subplot_index, "Y-Acceleration [m/s^2]", track["yAcceleration"])
-            subplot_index = subplot_index + 1
-
-        if track.get("lonAcceleration", None) is not None:
-            create_subplot(subplot_index, "Longitudinal-Acceleration [m/s^2]", track["lonAcceleration"])
+                if extra_plot_key in ("leadId", "leadDHW", "leadDV", "leadTTC"):
+                    for lead_id_change_idx, new_lead_id in lead_id_changes.items():
+                        if new_lead_id == -1:
+                            continue
+                        sub_plot.plot(lead_id_change_idx + track_meta["initialFrame"], plot_data[lead_id_change_idx], "rx")
+                        sub_plot.text(lead_id_change_idx + track_meta["initialFrame"], plot_data[lead_id_change_idx] + 0.1, str(new_lead_id))
 
         self.track_info_figures[track_id] = {"main_figure": fig,
                                              "borders": borders_list,
                                              "subplots": subplot_list}
         plt.show()
+
+    def _find_surrounding_vehicles(self, current_frame: int, track: dict, show_log: bool = True):
+        track_id = track["trackId"]
+        header_log = False
+        for surrounding_vehicle_key in self.surrounding_vehicles_ids.keys():
+            surrounding_id = track.get(surrounding_vehicle_key, {current_frame: -1})[current_frame]
+            if isinstance(surrounding_id, list) and len(surrounding_id) == 0:
+                surrounding_id = -1
+            self.surrounding_vehicles_ids[surrounding_vehicle_key] = surrounding_id
+            if show_log and surrounding_id != -1:
+                if not header_log:
+                    logger.info(f"--- Surrounding vehicles for track {track_id} ---")
+                    self._show_legend()
+                    header_log = True
+                logger.info(f"{surrounding_vehicle_key} "
+                            f"({self.surrounding_vehicles_colors[surrounding_vehicle_key]}) "
+                            f"surrounding vehicle for track {track_id}: {surrounding_id}")
 
     def _on_close_track_plots_window(self, _, track_id: int):
         if track_id in self.track_info_figures:

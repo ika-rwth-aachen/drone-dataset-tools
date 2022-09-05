@@ -1,7 +1,8 @@
-pandas>=0.23.3
-loguru>=0.2.5
-numpy
-matplotlib>=3.0.1
-opencv-python
-pyqt5
+sortedcontainers>=2.4.0
+pandas==1.1.5
+loguru==0.6.0
+numpy==1.22.0
+matplotlib==3.3.4
+opencv-python==4.2.0.32
+pyqt5==5.15.6
 sortedcontainers>=2.4.0

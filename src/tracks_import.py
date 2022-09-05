@@ -2,7 +2,7 @@ import pandas
 import glob
 import numpy as np
 from loguru import logger
-from typing import List
+from typing import List, Tuple
 
 
 def read_all_recordings_from_csv(base_path: str = "../data/") -> List[dict]:
@@ -28,7 +28,7 @@ def read_all_recordings_from_csv(base_path: str = "../data/") -> List[dict]:
 
 
 def read_from_csv(tracks_file: str, tracks_meta_file: str,
-                  recording_meta_file: str, include_px_coordinates: bool=False) -> (list, list, dict):
+                  recording_meta_file: str, include_px_coordinates: bool=False) -> Tuple[List[dict], List[dict], List[dict]]:
     """
     This method reads tracks and meta data for a single recording from csv files
     :param tracks_file: Path of a tracks csv file
@@ -51,7 +51,39 @@ def read_tracks(tracks_file: str, recording_meta: dict, include_px_coordinates: 
     :return: A list of tracks represented as dictionary each
     """
     # To extract every track, group the rows by the track id
-    raw_tracks = pandas.read_csv(tracks_file).groupby(["trackId"], sort=True)
+    n_max_overlapping_lanelets = 5
+
+    def semi_colon_int_list_to_list(semi_colon_list):
+        output_list = [np.nan] * n_max_overlapping_lanelets
+        if semi_colon_list:
+            if ";" in semi_colon_list:
+                for i, v in enumerate(semi_colon_list.split(";")):
+                    output_list[i] = int(v)
+                # output_list = [int(v) for v in semi_colon_list.split(";")]
+            else:
+                output_list[0] = int(semi_colon_list)
+        return output_list
+
+    def semi_colon_float_list_to_list(semi_colon_list):
+        output_list = [np.nan] * n_max_overlapping_lanelets
+        if semi_colon_list:
+            if ";" in semi_colon_list:
+                for i, v in enumerate(semi_colon_list.split(";")):
+                    output_list[i] = float(v)
+                # output_list = [int(v) for v in semi_colon_list.split(";")]
+            else:
+                output_list[0] = float(semi_colon_list)
+        return output_list
+
+    raw_tracks = pandas.read_csv(tracks_file,
+                                 converters={"leftAlongsideId": semi_colon_int_list_to_list,
+                                             "rightAlongsideId": semi_colon_int_list_to_list,
+                                             "laneletId": semi_colon_int_list_to_list,
+                                             "latLaneCenterOffset": semi_colon_float_list_to_list,
+                                             "lonLaneletPos": semi_colon_float_list_to_list,
+                                             "laneletLength": semi_colon_float_list_to_list,
+                                             "laneWidth": semi_colon_float_list_to_list}
+                                 ).groupby(["trackId"], sort=True)
     ortho_px_to_meter = recording_meta["orthoPxToMeter"]
 
     # Convert groups of rows to tracks
@@ -63,6 +95,8 @@ def read_tracks(tracks_file: str, recording_meta: dict, include_px_coordinates: 
         for key, value in track.items():
             if key in ["trackId", "recordingId"]:
                 track[key] = value[0]
+            elif key in ["leftAlongsideId", "rightAlongsideId"]:
+                continue
             else:
                 track[key] = np.array(value)
 
