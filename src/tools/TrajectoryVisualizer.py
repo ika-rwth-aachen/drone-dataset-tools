@@ -1,14 +1,17 @@
 from extractors.loader import Loader
+from extractors.LocationData import LocationData
 from loguru import logger
 import matplotlib.pyplot as plt
 import os
 import cv2
 
 class TrajectoryVisualizer:
+  """for InD only"""
 
   def __init__(self, loader: Loader):
 
     self.loader = loader
+    self.scale_down_factor = 12
   
   def initPlot(self, recordingId, trackId):
   
@@ -32,8 +35,8 @@ class TrajectoryVisualizer:
   
 
 
-  def plot(self, recordingMeta, tracksDf):
-    ortho_px_to_meter = recordingMeta["orthoPxToMeter"] * 12 # TODO fixed to scale down factor of inD
+  def plot(self, orthoPxToMeter, tracksDf):
+    ortho_px_to_meter = orthoPxToMeter * self.scale_down_factor # TODO fixed to scale down factor of inD
 
     self.ax.plot(tracksDf['xCenter'] / ortho_px_to_meter, -tracksDf['yCenter'] / ortho_px_to_meter, 'r')
 
@@ -42,7 +45,22 @@ class TrajectoryVisualizer:
     self.initPlot(recordingMeta["recordingId"], trackId)
 
     pedTracksDf = tracksDf[tracksDf.trackId == trackId]
-    self.plot(recordingMeta, pedTracksDf)
+    self.plot(recordingMeta["orthoPxToMeter"], pedTracksDf)
     return pedTracksDf
+
+  def showLocationCrossingTracks(self, locationData: LocationData):
+    self.initPlot(locationData.recordingIds[0], "MANY")
+    crossingDf = locationData.getCrossingDf()
+
+    uniqueCrossingIds = locationData.getUniqueCrossingIds()
+    for uniqueTrackId in uniqueCrossingIds:
+      pedDf = locationData.getCrossingDfByUniqueTrackId(uniqueTrackId)
+      self.plot(locationData.orthoPxToMeter, pedDf)
+
+
+
+
+
+
 
   

@@ -8,12 +8,35 @@ class LocationData:
     self.locationId = locationId
     self.recordingIds = recordingIds
     self.recordingDataList = recordingDataList
+
+    self.recordingMetaList = [recordingData.recordingMeta for recordingData in recordingDataList]
+    self.validateRecordingMeta()
+
+    self.frameRate = self.recordingMetaList[0]["frameRate"]
+    self.orthoPxToMeter = self.recordingMetaList[0]["orthoPxToMeter"]
   
     # cache
     self.__crossingDf = None
     self.__crossingIds = None
 
   
+
+  def validateRecordingMeta(self):
+    sameValueFields = [
+      "locationId",
+      "frameRate",
+      # "latLocation",
+      # "lonLocation",
+      # "xUtmOrigin",
+      # "yUtmOrigin",
+      "orthoPxToMeter"
+      ]
+    
+    firstMeta = self.recordingMetaList[0]
+    for otherMeta in self.recordingMetaList:
+      for field in sameValueFields:
+        if firstMeta[field] != otherMeta[field]:
+          raise Exception(f"{field} value mismatch for {firstMeta['recordingId']} and {otherMeta['recordingId']}")
 
   def getUniqueCrossingIds(self):
     """
@@ -39,6 +62,13 @@ class LocationData:
     
     return self.__crossingIds
 
+  def getCrossingDfByUniqueTrackId(self, uniqueTrackId):
+    return self.getCrossingDfByUniqueTrackIds([uniqueTrackId])
+
+  def getCrossingDfByUniqueTrackIds(self, uniqueTrackIds):
+      crossingDf = self.getCrossingDf()
+      criterion = crossingDf['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
+      return crossingDf[criterion]
 
   def getCrossingDf(self):
     if self.__crossingDf is None:

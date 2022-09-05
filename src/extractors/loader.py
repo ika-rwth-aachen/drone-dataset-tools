@@ -139,7 +139,10 @@ class Loader:
         recordingIds = self.getRecordingIdsOfALocation(locationId)
         logging.info(f"recordingIds: {recordingIds}")
         recordingDataList = [self.getRecordingData(rId) for rId in recordingIds]
+        self.validateLocationRecordingMeta()
         return LocationData(locationId, recordingIds, recordingDataList)
 
     
 
+    def validateLocationRecordingMeta(self):
+        pass
