@@ -25,6 +25,9 @@ visualizer = TrajectoryVisualizer(loader)
 for pedId in recordingData.getCrossingPedIds(tracksMetaDf):
     visualizer.showTrack(recordingId, pedId)
 ```
+For location 2, the visualization looks like this:
+
+<img src="./images/location-visualization-2.PNG" width="600">
 
 ## Visualizing location crossing data
 [Location viewer Notebook](../src/notebooks/location-trajectory-viewer.ipynb)

@@ -13,14 +13,14 @@ class TrajectoryVisualizer:
     self.loader = loader
     self.scale_down_factor = 12
   
-  def initPlot(self, recordingId, trackId):
+  def initPlot(self, recordingId, title):
   
     # Create figure and axes
     self.fig, self.ax = plt.subplots(1, 1)
     self.fig.set_size_inches(15, 8)
     plt.subplots_adjust(left=0.0, right=1.0, bottom=0.10, top=1.00)
-    self.fig.canvas.set_window_title(f"Trajectory for track {trackId}")
-    self.ax.set_title(f"Trajectory for track {trackId}")
+    self.fig.canvas.set_window_title(title)
+    self.ax.set_title(title)
 
     background_image_path = self.loader.getBackgroundImagePath(recordingId)
     if background_image_path and os.path.exists(background_image_path):
@@ -42,14 +42,14 @@ class TrajectoryVisualizer:
 
 
   def showTrack(self, tracksDf, recordingMeta, trackId):
-    self.initPlot(recordingMeta["recordingId"], trackId)
+    self.initPlot(recordingMeta["recordingId"], f"Trajectory for track {trackId}")
 
     pedTracksDf = tracksDf[tracksDf.trackId == trackId]
     self.plot(recordingMeta["orthoPxToMeter"], pedTracksDf)
     return pedTracksDf
 
   def showLocationCrossingTracks(self, locationData: LocationData):
-    self.initPlot(locationData.recordingIds[0], "MANY")
+    self.initPlot(locationData.recordingIds[0], f"Trajectories for location{locationData.locationId}")
     crossingDf = locationData.getCrossingDf()
 
     uniqueCrossingIds = locationData.getUniqueCrossingIds()
