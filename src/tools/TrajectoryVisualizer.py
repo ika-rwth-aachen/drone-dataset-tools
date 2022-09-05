@@ -38,9 +38,8 @@ class TrajectoryVisualizer:
     self.ax.plot(tracksDf['xCenter'] / ortho_px_to_meter, -tracksDf['yCenter'] / ortho_px_to_meter, 'r')
 
 
-  def showTrack(self, recordingId, trackId):
-    self.initPlot(recordingId, trackId)
-    tracksDf, tracksMetaDf, recordingMeta = self.loader.getRecordingData(recordingId)
+  def showTrack(self, tracksDf, recordingMeta, trackId):
+    self.initPlot(recordingMeta["recordingId"], trackId)
 
     pedTracksDf = tracksDf[tracksDf.trackId == trackId]
     self.plot(recordingMeta, pedTracksDf)

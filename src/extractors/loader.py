@@ -1,9 +1,11 @@
 import pandas as pd
 from typing import List, Dict
 from os import path, listdir
+import logging
 
 from sortedcontainers import SortedList
 from .RecordingData import RecordingData
+from .LocationData import LocationData
 
 class Loader:
 
@@ -68,6 +70,10 @@ class Loader:
         Returns:
             tracksDf, tracksMetaDf, recordingMetaDf
         """
+
+        if isinstance(recordingId, int):
+            recordingId = str(recordingId).zfill(2)
+
         rMetaFile = path.join(self.directory, f'{recordingId}_recordingMeta.csv')
         tMetaFile = path.join(self.directory, f'{recordingId}_tracksMeta.csv')
         tracksFile = path.join(self.directory, f'{recordingId}_tracks.csv')
@@ -98,7 +104,7 @@ class Loader:
         """
         returns a single DataFrame with all the pedestrian records
         """
-        return pd.concat(rDf)
+        return pd.concat(rDf, ignore_index=True)
 
     
     def getAllPedData(self, frameRate=25):
@@ -126,6 +132,14 @@ class Loader:
         """
         We will have all the actor data as columns. Each row will have all the information of all the actors. Each Episode starts with a pedestrian and ends with the same pedestrian
         """
+        pass
 
 
-        
+    def getLocationData(self, locationId):
+        recordingIds = self.getRecordingIdsOfALocation(locationId)
+        logging.info(f"recordingIds: {recordingIds}")
+        recordingDataList = [self.getRecordingData(rId) for rId in recordingIds]
+        return LocationData(locationId, recordingIds, recordingDataList)
+
+    
+

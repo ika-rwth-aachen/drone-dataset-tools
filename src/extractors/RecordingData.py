@@ -14,23 +14,23 @@ class RecordingData:
 
 
   def getPedIds(self) -> SortedList:
-    return SortedList(this.tracksMetaDf[tracksMetaDf['class'] == 'pedestrian']['trackId'].tolist())
+    return SortedList(self.tracksMetaDf[self.tracksMetaDf['class'] == 'pedestrian']['trackId'].tolist())
   
 
   def getCrossingPedIds(self) -> SortedList:
     if 'crossing' not in self.tracksMetaDf:
-      raise Error("crossing annotation not in tracksMetaDf")
+      raise Exception("crossing annotation not in tracksMetaDf")
 
-    return SortedList(this.tracksMetaDf[(tracksMetaDf['class'] == 'pedestrian') & (tracksMetaDf['crossing'] == 'yes') ]['trackId'].tolist())
+    return SortedList(self.tracksMetaDf[(self.tracksMetaDf['class'] == 'pedestrian') & (self.tracksMetaDf['crossing'] == 'yes') ]['trackId'].tolist())
 
 
   def getDfByTrackIds(self, trackIds):
-      criterion = self.tracksDf['trackId'].map(lambda trackId: trackId in pedIds)
+      criterion = self.tracksDf['trackId'].map(lambda trackId: trackId in trackIds)
       return self.tracksDf[criterion]
 
   
   def getCrossingDf(self):
-    if self.__crossingDf is not None:
+    if self.__crossingDf is None:
       crossingIds = self.getCrossingPedIds()
       self.__crossingDf = self.getDfByTrackIds(crossingIds)
 

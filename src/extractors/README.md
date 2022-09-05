@@ -65,3 +65,17 @@ crossingIds = recordingData.getCrossingPedIds() # pedestrians crossing
 selectedDf = recordingData.getDfByTrackIds(trackIds) # trackIds is a set of actor ids.
 ```
 
+# LocationData
+Aggregation over recording data of a location
+
+**get all the unique crossing ids**
+```
+loc2data = loader.getLocationData(2)
+loc2data.getUniqueCrossingIds()
+```
+
+**get all the crossing data**
+```
+loc2data = loader.getLocationData(2)
+crossingDf = loc2data.getCrossingDf()
+```
