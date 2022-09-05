@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger
 
-from track_visualizer import TrackVisualizer, DataError
+from ped_visualizer import PedVisualizer, DataError
 from tracks_import import read_from_csv
 
 
@@ -33,7 +33,7 @@ def create_args():
     cs.add_argument('--show_orientation', default=False,
                     help="Indicate the orientation of all vehicles by triangles.",
                     type=str2bool)
-    cs.add_argument('--show_trajectory', default=False,
+    cs.add_argument('--show_trajectory', default=True,
                     help="Show the trajectory up to the current frame for every track.",
                     type=str2bool)
     cs.add_argument('--show_future_trajectory', default=False,
@@ -58,7 +58,7 @@ def create_args():
                     help="Show the track Visualizer maximized. Might affect performance.",
                     type=str2bool)
 
-    cs.add_argument('--ped_only', default=False,
+    cs.add_argument('--ped_only', default=True,
                     help="Play frames having pedestrians only",
                     type=str2bool)
 
@@ -97,7 +97,7 @@ def main():
     config["background_image_path"] = background_image_path
 
     try:
-        visualization_plot = TrackVisualizer(config, tracks, tracks_meta, recording_meta)
+        visualization_plot = PedVisualizer(config, tracks, tracks_meta, recording_meta)
         visualization_plot.show()
     except DataError:
         sys.exit(1)
@@ -118,4 +118,4 @@ if __name__ == '__main__':
     main()
 
 
-# python run_track_visualization.py --dataset_dir "G:/AV datasets/inD-dataset-v1.0/data/" --dataset "inD" --recording 18 --ped_only True --annotate_track_id True --show_trajectory True
+# python run_ped_visualization.py --dataset_dir "G:/AV datasets/inD-dataset-v1.0/data/" --dataset "inD" --recording 18 --annotate_track_id True
