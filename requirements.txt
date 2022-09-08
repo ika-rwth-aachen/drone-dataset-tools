@@ -6,3 +6,4 @@ matplotlib==3.3.4
 opencv-python==4.2.0.32
 pyqt5==5.15.6
 sortedcontainers>=2.4.0
+shapely>=1.7.1

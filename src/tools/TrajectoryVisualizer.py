@@ -1,9 +1,11 @@
 from extractors.loader import Loader
 from extractors.LocationData import LocationData
+from extractors.SceneData import SceneData
 from loguru import logger
 import matplotlib.pyplot as plt
 import os
 import cv2
+import numpy as np
 
 class TrajectoryVisualizer:
   """for InD only"""
@@ -57,6 +59,22 @@ class TrajectoryVisualizer:
       pedDf = locationData.getCrossingDfByUniqueTrackId(uniqueTrackId)
       self.plot(locationData.orthoPxToMeter, pedDf)
 
+  def showLocationSceneData(self, sceneData: SceneData):
+    self.initPlot(sceneData.data.recordingId[0], f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}")
+
+    uniqueCrossingIds = sceneData.uniquePedIds()
+    for uniqueTrackId in uniqueCrossingIds:
+      pedDf = sceneData.getDfByUniqueTrackId(uniqueTrackId)
+      self.plot(sceneData.orthoPxToMeter, pedDf)
+    
+    # plot box
+    ortho_px_to_meter = sceneData.orthoPxToMeter * self.scale_down_factor
+    (X, Y) = sceneData.polygon.exterior.xy
+    X = np.array(X)
+    Y = np.array(Y)
+    X /= ortho_px_to_meter
+    Y /= -ortho_px_to_meter
+    self.ax.plot(X, Y, "lime")
 
 
 

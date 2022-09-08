@@ -1,6 +1,9 @@
 import pandas as pd
 from sortedcontainers import SortedList
 import logging
+from tools.UnitUtils import UnitUtils
+from tools.TrajectoryUtils import TrajectoryUtils
+from .SceneData import SceneData
 
 class LocationData:
 
@@ -18,6 +21,8 @@ class LocationData:
     # cache
     self.__crossingDf = None
     self.__crossingIds = None
+
+    self.__sceneData = {}
 
   
 
@@ -82,6 +87,52 @@ class LocationData:
       self.__crossingDf = pd.concat(dfs, ignore_index=True)
     
     return self.__crossingDf
+
+  
+  def getSceneConfig(self):
+    allLocationSceneConfig = UnitUtils.loadSceneConfiguration()
+    return allLocationSceneConfig[str(self.locationId)]
+
+  
+  def getSceneCrossingDf(self, sceneId, boxWidth, boxHeight) -> pd.DataFrame:
+
+    sceneDfs = []
+    sceneConfig = self.getSceneConfig()[str(sceneId)]
+
+    # create polygon
+    scenePolygon = TrajectoryUtils.scenePolygon(sceneConfig, boxWidth, boxHeight)
+    # create splines
+    crossingIds = self.getUniqueCrossingIds()
+    for crossingId in crossingIds:
+      pedDf = self.getCrossingDfByUniqueTrackId(crossingId)
+      trajSpline = TrajectoryUtils.dfToSplines(pedDf, "xCenter", "yCenter", 1)
+      if TrajectoryUtils.doesIntersect(scenePolygon, trajSpline):
+        pedDf = pedDf.copy() # we can modify without concern now
+        pedDf["sceneId"] = sceneId
+        sceneDfs.append(pedDf)
+    
+    return pd.concat(sceneDfs, ignore_index=True)
+
+  
+  def getSceneCrossingData(self, sceneId, boxWidth, boxHeight, refresh=False) -> pd.DataFrame:
+
+    if sceneId not in self.__sceneData or refresh:
+
+      data = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
+      sceneConfig = self.getSceneConfig()[str(sceneId)]
+      self.__sceneData[sceneId] = SceneData(
+                                            self.locationId, 
+                                            self.orthoPxToMeter,
+                                            sceneId, 
+                                            sceneConfig, 
+                                            boxWidth, 
+                                            boxHeight, 
+                                            data
+                                          )
+
+    return self.__sceneData[sceneId]
+
+
 
 
 

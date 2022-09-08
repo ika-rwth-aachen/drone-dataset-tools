@@ -1,3 +1,7 @@
+
+from pathlib import Path
+import json
+
 class UnitUtils:
 
   @staticmethod
@@ -28,3 +32,22 @@ class UnitUtils:
           sys.exit(-1)
 
       return dataset_params["datasets"][dataset]
+
+  @staticmethod
+  def loadSceneConfiguration(dataset="ind"):
+    # Load dataset specific visualization parameters from file
+      scenePath = Path("../data/scenes") / f"{dataset}.json"
+
+      if not scenePath.exists():
+          logger.error("Could not scenePath in {}", scenePath)
+          sys.exit(-1)
+
+      with open(scenePath) as f:
+          sceneConfig = json.load(f)
+
+      # if dataset not in dataset_params["datasets"]:
+      #     logger.error("Scene config for dataset {} not found in {}. Please make sure, that the needed "
+      #                   "parameters are given", sceneConfig, scenePath)
+      #     sys.exit(-1)
+
+      return sceneConfig
