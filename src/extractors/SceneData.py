@@ -55,6 +55,8 @@ class SceneData:
   def transformToLocalCoordinate(self):
 
       # translate and rotate.
+      clippedDf = self.getClippedDfs()
+      
       pass
   
   def clip(self):
