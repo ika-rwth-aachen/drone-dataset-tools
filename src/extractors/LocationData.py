@@ -114,7 +114,7 @@ class LocationData:
     return pd.concat(sceneDfs, ignore_index=True)
 
   
-  def getSceneCrossingData(self, sceneId, boxWidth, boxHeight, refresh=False) -> pd.DataFrame:
+  def getSceneCrossingData(self, sceneId, boxWidth, boxHeight, refresh=False, fps=2.5) -> pd.DataFrame:
 
     if sceneId not in self.__sceneData or refresh:
 

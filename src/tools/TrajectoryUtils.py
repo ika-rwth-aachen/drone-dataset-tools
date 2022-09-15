@@ -1,8 +1,15 @@
-from shapely.geometry import LineString, box
+from shapely.geometry import LineString, box, Point
+from shapely.affinity import rotate
+
 import pandas as pd
-from math import sqrt
+from math import sqrt, inf
 
 class TrajectoryUtils:
+
+  @staticmethod
+  def length(trajectoryDf: pd.DataFrame, xCol, yCol) -> int:
+    spline =  TrajectoryUtils.dfToSplines(trajectoryDf, xCol, yCol)
+    return spline.length
 
   @staticmethod
   def dfToSplines(trajectoryDf: pd.DataFrame, xCol, yCol, minLen=0.5) -> LineString:
@@ -41,11 +48,41 @@ class TrajectoryUtils:
 
     # TODO rotate
 
-    return box(minX, minY, maxX, maxY)
+    bbox = box(minX, minY, maxX, maxY)
+    return rotate(bbox, sceneConfig['angle'])
 
   
   @staticmethod
   def doesIntersect(polygon: box, spline: LineString) -> bool:
     return polygon.intersects(spline)
 
+  
+  @staticmethod
+  def clip(pedDf, xCol, yCol, frameCol, sceneConfig, boxWidth, boxHeight) -> pd.DataFrame:
+    """ Clip the trajectory with 150% rect clipping. """
+
+    rect = TrajectoryUtils.scenePolygon(sceneConfig, boxWidth, boxHeight)
+    # find entry and exit point frame number, keep all the points in between and disregard others. A trajectory may enter several times, but we don't need them.
+
+    entryFrame = -inf
+    exitFrame = inf
+
+    for idx, row in pedDf.iterrows():
+      if entryFrame == -inf:
+        # check if this row is an entry point
+        if rect.contains(Point(row[xCol], row[yCol])):
+          entryFrame = row[frameCol]
+          continue
+
+      if entryFrame > 0  and exitFrame == inf:
+        # check if this row is an exit point
+        if not rect.contains(Point(row[xCol], row[yCol])):
+          exitFrame = row[frameCol]
+          break
+    
+    # sometimes there are no exit frame. use the last frame
+    if exitFrame == inf:
+      exitFrame = row[frameCol]
+
+    return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
 

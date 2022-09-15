@@ -37,10 +37,10 @@ class TrajectoryVisualizer:
   
 
 
-  def plot(self, orthoPxToMeter, tracksDf):
+  def plot(self, orthoPxToMeter, tracksDf, style="r"):
     ortho_px_to_meter = orthoPxToMeter * self.scale_down_factor # TODO fixed to scale down factor of inD
 
-    self.ax.plot(tracksDf['xCenter'] / ortho_px_to_meter, -tracksDf['yCenter'] / ortho_px_to_meter, 'r')
+    self.ax.plot(tracksDf['xCenter'] / ortho_px_to_meter, -tracksDf['yCenter'] / ortho_px_to_meter, style)
 
 
   def showTrack(self, tracksDf, recordingMeta, trackId):
@@ -59,13 +59,18 @@ class TrajectoryVisualizer:
       pedDf = locationData.getCrossingDfByUniqueTrackId(uniqueTrackId)
       self.plot(locationData.orthoPxToMeter, pedDf)
 
-  def showLocationSceneData(self, sceneData: SceneData):
+  def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False):
     self.initPlot(sceneData.data.recordingId[0], f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}")
 
     uniqueCrossingIds = sceneData.uniquePedIds()
     for uniqueTrackId in uniqueCrossingIds:
-      pedDf = sceneData.getDfByUniqueTrackId(uniqueTrackId)
-      self.plot(sceneData.orthoPxToMeter, pedDf)
+      if not onlyClipped:
+        pedDf = sceneData.getDfByUniqueTrackId(uniqueTrackId)
+        self.plot(sceneData.orthoPxToMeter, pedDf)
+      clippedDf = sceneData.getDfByUniqueTrackId(uniqueTrackId, clipped=True)
+      self.plot(sceneData.orthoPxToMeter, clippedDf, style="c:")
+
+      # break
     
     # plot box
     ortho_px_to_meter = sceneData.orthoPxToMeter * self.scale_down_factor
