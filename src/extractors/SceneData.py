@@ -32,6 +32,8 @@ class SceneData:
 
     self._pedIds = None
 
+    self.dropWorldCoordinateColumns()
+
   def uniquePedIds(self) -> np.ndarray:
     if self._pedIds is None:
       self._pedIds = self.data.uniqueTrackId.unique()
@@ -55,9 +57,26 @@ class SceneData:
   def transformToLocalCoordinate(self):
 
       # translate and rotate.
-      clippedDf = self.getClippedDfs()
+      clippedDf = self.getClippedDfs().clone()
       
+      # transform position
+      # transform velocity
+      # transform heading
+
+
+      for idx, row in clippedDf.iterrows():
+        position = (row["xCenter"], row["yCenter"])
+        velocity = (row["xVelocity"], row["yVelocity"])
+        acceleration = (row["xAcceleration"], row["yAcceleration"])
+        heading = row['heading']
+
+
       pass
+  
+  
+  def dropWorldCoordinateColumns(self):
+    self.data = self.data.drop(["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
+
   
   def clip(self):
     dfs = []
