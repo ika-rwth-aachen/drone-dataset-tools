@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from shapely.geometry import Point
 from tools.TrajectoryUtils import TrajectoryUtils
 
 class SceneData:
@@ -63,8 +64,12 @@ class SceneData:
       # transform velocity
       # transform heading
 
+      origin = Point(self.centerX, self.centerY)
+      originAngle = self.angle
+
 
       for idx, row in clippedDf.iterrows():
+
         position = (row["xCenter"], row["yCenter"])
         velocity = (row["xVelocity"], row["yVelocity"])
         acceleration = (row["xAcceleration"], row["yAcceleration"])
