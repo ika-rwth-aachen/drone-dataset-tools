@@ -1,9 +1,9 @@
 from shapely.geometry import LineString, box, Point
-from shapely.affinity import rotate
+from shapely.affinity import rotate, translate, affine_transform
 
 import pandas as pd
-from math import sqrt, inf
-
+from math import sqrt, inf, cos, sin, radians
+from typing import List
 class TrajectoryUtils:
 
   @staticmethod
@@ -85,4 +85,26 @@ class TrajectoryUtils:
       exitFrame = row[frameCol]
 
     return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
+
+  @staticmethod
+  def getTranslationMatrix(localCenterPosition: Point) -> List[float]:
+
+    return [1, 0, 0, 1, -localCenterPosition.x, -localCenterPosition.y]
+
+  @staticmethod
+  def getRotationMatrix(localCenterRotation) -> List[float]:
+    """
+    returns rotationMatrix wrt 0,0, not local coordinate system.
+    """
+    rotInRad = -radians(localCenterRotation)
+    costTheta = cos(rotInRad)
+    sinTheta = sin(rotInRad)
+    return [costTheta, -sinTheta, sinTheta, costTheta, 0, 0]
+
+
+  @staticmethod
+  def transformPoint(translationMatrix, rotationMatrix, point:Point) -> Point:
+
+    translated = affine_transform(point, translationMatrix)
+    return affine_transform(translated, rotationMatrix) # order matters.
 

@@ -55,10 +55,22 @@ class SceneData:
         criterion = self.data['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
         return self.data[criterion]
   
+  
+  # def getLocalDfByUniqueTrackId(self, uniqueTrackId):
+  #   return self.getLocalDfByUniqueTrackIds([uniqueTrackId])
+
+  # def getLocalDfByUniqueTrackIds(self, uniqueTrackIds):
+      
+  #     data = self.getDataInSceneCorrdinates()
+  #     criterion = data['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
+  #     return data[criterion]
+  
+  
+  
   def transformToLocalCoordinate(self):
 
       # translate and rotate.
-      clippedDf = self.getClippedDfs().clone()
+      clippedDf = self.getClippedDfs()
       
       # transform position
       # transform velocity
@@ -67,16 +79,38 @@ class SceneData:
       origin = Point(self.centerX, self.centerY)
       originAngle = self.angle
 
+      translationMat = TrajectoryUtils.getTranslationMatrix(origin)
+      rotationMat = TrajectoryUtils.getRotationMatrix(originAngle)
+
+      sceneX = []
+      sceneY = []
+
 
       for idx, row in clippedDf.iterrows():
 
-        position = (row["xCenter"], row["yCenter"])
-        velocity = (row["xVelocity"], row["yVelocity"])
-        acceleration = (row["xAcceleration"], row["yAcceleration"])
-        heading = row['heading']
+        position = Point(row["xCenter"], row["yCenter"])
+        # velocity = (row["xVelocity"], row["yVelocity"])
+        # acceleration = (row["xAcceleration"], row["yAcceleration"])
+        # heading = row['heading']
+        newPosition = TrajectoryUtils.transformPoint(translationMat, rotationMat, position)
 
+        # row['sceneX'] = newPosition.x
+        # row['sceneY'] = newPosition.y
+        sceneX.append(newPosition.x)
+        sceneY.append(newPosition.y)
+
+      
+      clippedDf["sceneX"] = sceneX
+      clippedDf["sceneY"] = sceneY
+      # self._dataLocal = clippedDf
 
       pass
+  
+  def getDataInSceneCorrdinates(self):
+    if self._dataLocal is None:
+      self.transformToLocalCoordinate()
+    
+    return self._dataLocal
   
   
   def dropWorldCoordinateColumns(self):
