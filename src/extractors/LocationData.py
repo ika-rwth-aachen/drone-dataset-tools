@@ -114,7 +114,7 @@ class LocationData:
     return pd.concat(sceneDfs, ignore_index=True)
 
   
-  def getSceneCrossingData(self, sceneId, boxWidth, boxHeight, refresh=False, fps=2.5) -> pd.DataFrame:
+  def getSceneCrossingData(self, sceneId, boxWidth, boxHeight, refresh=False, fps=2.5) -> SceneData:
 
     if sceneId not in self.__sceneData or refresh:
 
@@ -131,6 +131,43 @@ class LocationData:
                                           )
 
     return self.__sceneData[sceneId]
+
+  
+  def getCrossingDataForTransformer(self):
+    """
+    csv with frame, ped, x, y
+    """
+    sceneConfigs = self.getSceneConfig()
+    sceneIds = list(sceneConfigs.keys())
+
+    sceneDfs = []
+
+    # 1. Get all clipped scene crossing data in their local coordinate system
+    for sceneId  in sceneIds:
+      sceneConfig = sceneConfigs[str(sceneId)]
+      sceneData = self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
+      sceneLocalDf = sceneData.getDataInSceneCorrdinates()
+      sceneDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId"]].copy())
+
+    allSceneDf = pd.concat(sceneDfs, ignore_index=True)
+    # 2. create unique integer ped ids (they are already int)
+    # self._createUniqueIntegerPedId(allSceneDf)
+    # 3. Augment data (flipping)
+    # 4. fps conversion?
+
+    # last: rename
+    allSceneDf.rename(columns={
+      "uniqueTrackId": "ped", 
+      "sceneX": "x", 
+      "sceneY": "y"
+    })
+    return allSceneDf
+
+  # def _createUniqueIntegerPedId(allSceneDf: pd.DataFrame):
+  #   uniqueTrackIds = allSceneDf["uniqueTrackId"].unique()
+  #   pass
+
+
 
 
 

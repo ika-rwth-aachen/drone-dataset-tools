@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from shapely.geometry import Point
 from tools.TrajectoryUtils import TrajectoryUtils
+from loguru import logger
 
 class SceneData:
   def __init__(
@@ -14,7 +15,6 @@ class SceneData:
     boxHeight, 
     data: pd.DataFrame
     ):
-
     self.locationId = locationId
     self.orthoPxToMeter = orthoPxToMeter # for visualization
     self.sceneId = sceneId
@@ -33,7 +33,9 @@ class SceneData:
 
     self._pedIds = None
 
-    self.dropWorldCoordinateColumns()
+    self._dropWorldCoordinateColumns()
+    self._transformToLocalCoordinate()
+
 
   def uniquePedIds(self) -> np.ndarray:
     if self._pedIds is None:
@@ -55,19 +57,12 @@ class SceneData:
         criterion = self.data['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
         return self.data[criterion]
   
+  def _dropWorldCoordinateColumns(self):
+      logger.debug("Dropping , lonVelocity, latVelocity, lonAcceleration, latAcceleration")
+      self.data = self.data.drop(["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
   
-  # def getLocalDfByUniqueTrackId(self, uniqueTrackId):
-  #   return self.getLocalDfByUniqueTrackIds([uniqueTrackId])
-
-  # def getLocalDfByUniqueTrackIds(self, uniqueTrackIds):
-      
-  #     data = self.getDataInSceneCorrdinates()
-  #     criterion = data['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
-  #     return data[criterion]
-  
-  
-  
-  def transformToLocalCoordinate(self):
+  def _transformToLocalCoordinate(self):
+      logger.debug("transforming trajectories to scene coordinates")
 
       # translate and rotate.
       clippedDf = self.getClippedDfs()
@@ -102,7 +97,7 @@ class SceneData:
       
       clippedDf["sceneX"] = sceneX
       clippedDf["sceneY"] = sceneY
-      # self._dataLocal = clippedDf
+      self._dataLocal = clippedDf
 
       pass
   
@@ -113,17 +108,16 @@ class SceneData:
     return self._dataLocal
   
   
-  def dropWorldCoordinateColumns(self):
-    self.data = self.data.drop(["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
 
   
-  def clip(self):
+  def _clip(self):
+    logger.debug("clipping trajectories")
     dfs = []
     for pedId in self.uniquePedIds():
       pedDf = self.getDfByUniqueTrackId(pedId)
       clippedDf = TrajectoryUtils.clip(pedDf, "xCenter", "yCenter", "frame", self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + 2)
       if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
-        print(f"Disregarding trajectory for {pedId} because the length is too low")
+        logger.info(f"Disregarding trajectory for {pedId} because the length is too low")
       else:
         dfs.append(clippedDf)
     
@@ -131,6 +125,6 @@ class SceneData:
   
   def getClippedDfs(self):
     if self._clippedData is None:
-      self.clip()
+      self._clip()
     
     return self._clippedData

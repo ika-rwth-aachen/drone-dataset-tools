@@ -80,3 +80,31 @@ loc2data.getUniqueCrossingIds()
 loc2data = loader.getLocationData(2)
 crossingDf = loc2data.getCrossingDf()
 ```
+
+# SceneData
+
+This class holds the data of a scene. The purpose of this class is to crop trajectories to the scene area and transfrom them to scene coordinate system. **getClippedDfs** method returns the clipped trajectories. Here goes the important columns:
+- sceneId: a numeric id represent a scene location. It will be the same value for a SceneData object
+- sceneX, sceneY: xCenter, yCenter transformed into scene origin.
+
+**Extracting ccene data from location data**
+```
+  sceneData = loc2data.getSceneCrossingData(1, 10, 5, refresh=False)
+  visualizer.showLocationSceneData(sceneData, showLocal=True)
+```
+
+**Get clipped trajectories**
+```
+sceneLocalDf = scene6Data.getClippedDfs()
+sceneLocalDf.head()
+```
+
+# Exporting data to formats for different purposes
+## [Trajectory transformer]('https://github.com/FGiuliari/Trajectory-Transformer')
+
+```
+transformerData = loc2data.getCrossingDataForTransformer()
+```
+
+
+
