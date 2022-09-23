@@ -6,8 +6,9 @@ Therefore, we provide source code in Python for import and visualization.
 Thus, this source code not only allows to visualize trajectories and thus get an overview, but also serves as a template for your own projects.
 
 ## Extractor documentation:
-Read the documentation [here](./extractors/README.md) for the extractor API.
-Read the documentation [here](./tools/README.md) for the extractor API.
+Read the documentation [here](./extractor.md) for the extractor API.
+Read the documentation [here](./visualization.md) for the visualization API..
+
 ## Installation and Quick Start
 
 1. Create a new Python environment or select a pre-existing one. 
