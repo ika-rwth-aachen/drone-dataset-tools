@@ -4,13 +4,18 @@ import logging
 from tools.UnitUtils import UnitUtils
 from tools.TrajectoryUtils import TrajectoryUtils
 from .SceneData import SceneData
+from tqdm import tqdm
 
 class LocationData:
 
-  def __init__(self, locationId, recordingIds, recordingDataList):
+  def __init__(self, locationId, recordingIds, recordingDataList, useSceneConfigToExtract=False):
+
+
     self.locationId = locationId
     self.recordingIds = recordingIds
     self.recordingDataList = recordingDataList
+
+    self.useSceneConfigToExtract = useSceneConfigToExtract
 
     self.recordingMetaList = [recordingData.recordingMeta for recordingData in recordingDataList]
     self.validateRecordingMeta()
@@ -50,21 +55,23 @@ class LocationData:
 
     if self.__crossingIds is None:
       self.__crossingIds = SortedList()
-      for recordingData in self.recordingDataList:
-        # crossingIds = recordingData.getCrossingIds()
-        try:
-          crossingDf = recordingData.getCrossingDf()
-          if "uniqueTrackId" in crossingDf:
-            uniqueIds = crossingDf.uniqueTrackId.unique()
-            logging.info(f"crossing ids for {recordingData.recordingId}: {recordingData.getCrossingPedIds()}")
-            logging.info(f"uniqueIds for {recordingData.recordingId}: {uniqueIds}")
-            self.__crossingIds.update(uniqueIds)
-          else:
-            logging.warn(f"{recordingData.recordingId} does not have uniqueTrackId")
-        except Exception as e:
-          logging.warn(f"{recordingData.recordingId} has exception: {e}")
+      # for recordingData in self.recordingDataList:
+      #   # crossingIds = recordingData.getCrossingIds()
+      #   try:
+          
+      #     crossingDf = recordingData.getCrossingDf()
+      #     if "uniqueTrackId" in crossingDf:
+      #       uniqueIds = crossingDf.uniqueTrackId.unique()
+      #       logging.info(f"crossing ids for {recordingData.recordingId}: {recordingData.getCrossingPedIds()}")
+      #       logging.info(f"uniqueIds for {recordingData.recordingId}: {uniqueIds}")
+      #       self.__crossingIds.update(uniqueIds)
+      #     else:
+      #       logging.warn(f"{recordingData.recordingId} does not have uniqueTrackId")
+      #   except Exception as e:
+      #     logging.warn(f"{recordingData.recordingId} has exception: {e}")
+      crossingDf = self.getCrossingDf()
+      self.__crossingIds.update(crossingDf.uniqueTrackId.unique())
 
-    
     return self.__crossingIds
 
   def getCrossingDfByUniqueTrackId(self, uniqueTrackId):
@@ -75,14 +82,26 @@ class LocationData:
       criterion = crossingDf['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
       return crossingDf[criterion]
 
+  def getRecordingCrossingDf(self, recordingData):
+      if self.useSceneConfigToExtract:
+        crossingDf = recordingData.getCrossingDfBySceneConfig(self.getSceneConfig())
+      else:
+        crossingDf = recordingData.getCrossingDfByAnnotations()
+      return crossingDf
+
   def getCrossingDf(self):
     if self.__crossingDf is None:
       dfs = []
-      for recordingData in self.recordingDataList:
+      for recordingData in tqdm(self.recordingDataList, desc="recording", position=0):
         try:
-          dfs.append(recordingData.getCrossingDf())
+          crossingDf = self.getRecordingCrossingDf(recordingData)
+          logging.info(f"got crossing df for {recordingData.recordingId}")
+          if "uniqueTrackId" not in crossingDf:
+            raise Exception(f"{recordingData.recordingId} does not have uniqueTrackId")
+          dfs.append(crossingDf)
         except Exception as e:
           logging.warn(f"{recordingData.recordingId} has exception: {e}")
+          # raise e
 
       self.__crossingDf = pd.concat(dfs, ignore_index=True)
     
@@ -166,6 +185,10 @@ class LocationData:
   # def _createUniqueIntegerPedId(allSceneDf: pd.DataFrame):
   #   uniqueTrackIds = allSceneDf["uniqueTrackId"].unique()
   #   pass
+
+  def saveCrossingDf(self, path):
+    crossingDf = self.getCrossingDf()
+    crossingDf.to_csv(path)
 
 
 
