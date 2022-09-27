@@ -1,7 +1,7 @@
 {
   "2": {
 
-    "1": {
+    "10": {
       "centerXPixel": 628.5,
       "centerYPixel": 286.5,
       "centerX": 61.44,
@@ -15,13 +15,13 @@
       "centerXPixel": 688.5,
       "centerYPixel": 273.5,
       "centerX": 67.30,
-      "centerY": -6.74,
+      "centerY": -26.74,
       "angle": 12.17,
       "roadWidth": 5.0,
       "boxWidth": 5.0
     },
 
-    "2": {
+    "20": {
       "centerXPixel": 383.5,
       "centerYPixel": 322.5,
       "centerX": 37.49,
@@ -31,7 +31,7 @@
       "boxWidth": 15.0
     },
 
-    "22": {
+    "21": {
       "centerXPixel": 302.5,
       "centerYPixel": 345.5,
       "centerX": 29.57,
@@ -41,28 +41,7 @@
       "boxWidth": 15.0
     },
 
-    "3": {
-      "centerXPixel": 490.5,
-      "centerYPixel": 392.5,
-      "centerX": 47.95,
-      "centerY": -38.36,
-      "angle": 111.79,
-      "roadWidth": 6.0,
-      "boxWidth": 15.0
-    }
-    ,
-
-    "4": {
-      "centerXPixel": 450.5,
-      "centerYPixel": 180.5,
-      "centerX": 44.04,
-      "centerY": -17.64,
-      "angle": 134.74,
-      "roadWidth": 6.0,
-      "boxWidth": 10.0
-    },
-
-    "5": {
+    "22": {
       "centerXPixel": 188.5,
       "centerYPixel": 375.5,
       "centerX": 18.43,
@@ -72,7 +51,17 @@
       "boxWidth": 20.0
     },
 
-    "6": {
+    "30": {
+      "centerXPixel": 490.5,
+      "centerYPixel": 392.5,
+      "centerX": 47.95,
+      "centerY": -38.36,
+      "angle": 111.79,
+      "roadWidth": 6.0,
+      "boxWidth": 15.0
+    },
+
+    "31": {
       "centerXPixel": 518.5,
       "centerYPixel": 461.5,
       "centerX": 50.67,
@@ -80,9 +69,17 @@
       "angle": 111.79,
       "roadWidth": 6.0,
       "boxWidth": 10.0
+    },
+
+    "40": {
+      "centerXPixel": 450.5,
+      "centerYPixel": 180.5,
+      "centerX": 44.04,
+      "centerY": -17.64,
+      "angle": 134.74,
+      "roadWidth": 6.0,
+      "boxWidth": 10.0
     }
-
-
 
   }
   
