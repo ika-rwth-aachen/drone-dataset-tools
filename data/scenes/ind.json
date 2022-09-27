@@ -11,6 +11,16 @@
       "boxWidth": 10.0
     },
 
+    "11": {
+      "centerXPixel": 688.5,
+      "centerYPixel": 273.5,
+      "centerX": 67.30,
+      "centerY": -6.74,
+      "angle": 12.17,
+      "roadWidth": 5.0,
+      "boxWidth": 5.0
+    },
+
     "2": {
       "centerXPixel": 383.5,
       "centerYPixel": 322.5,
@@ -18,7 +28,17 @@
       "centerY": -31.53,
       "angle": 16.0,
       "roadWidth": 6.0,
-      "boxWidth": 10.0
+      "boxWidth": 15.0
+    },
+
+    "22": {
+      "centerXPixel": 302.5,
+      "centerYPixel": 345.5,
+      "centerX": 29.57,
+      "centerY": -33.77,
+      "angle": 16.0,
+      "roadWidth": 6.0,
+      "boxWidth": 15.0
     },
 
     "3": {
@@ -28,7 +48,7 @@
       "centerY": -38.36,
       "angle": 111.79,
       "roadWidth": 6.0,
-      "boxWidth": 10.0
+      "boxWidth": 15.0
     }
     ,
 
@@ -39,7 +59,7 @@
       "centerY": -17.64,
       "angle": 134.74,
       "roadWidth": 6.0,
-      "boxWidth": 6.0
+      "boxWidth": 10.0
     },
 
     "5": {

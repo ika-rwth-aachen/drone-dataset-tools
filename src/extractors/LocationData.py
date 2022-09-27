@@ -115,6 +115,10 @@ class LocationData:
   
   def getSceneCrossingDf(self, sceneId, boxWidth, boxHeight) -> pd.DataFrame:
 
+    if self.useSceneConfigToExtract:
+      crossingDf = self.getCrossingDf()
+      return crossingDf[crossingDf["sceneId"] == str(sceneId)].copy().reset_index()
+
     sceneDfs = []
     sceneConfig = self.getSceneConfig()[str(sceneId)]
 

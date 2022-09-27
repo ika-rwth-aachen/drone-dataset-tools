@@ -60,6 +60,7 @@ class TrajectoryVisualizer:
       self.plot(locationData.orthoPxToMeter, pedDf)
 
   def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False, showLocal=False):
+
     self.initPlot(sceneData.data.recordingId[0], f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}")
 
     uniqueCrossingIds = sceneData.uniquePedIds()

@@ -3,6 +3,7 @@ import numpy as np
 from shapely.geometry import Point
 from tools.TrajectoryUtils import TrajectoryUtils
 from loguru import logger
+from tqdm import tqdm
 
 class SceneData:
   def __init__(
@@ -110,14 +111,29 @@ class SceneData:
   
 
   
+  # def _clip(self):
+  #   logger.debug("clipping trajectories")
+  #   dfs = []
+  #   for pedId in  tqdm(self.uniquePedIds(), desc="clipping trajectories"):
+  #     pedDf = self.getDfByUniqueTrackId(pedId)
+  #     clippedDf = TrajectoryUtils.clip(pedDf, "xCenter", "yCenter", "frame", self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + 2)
+  #     if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
+  #       logger.debug(f"Disregarding trajectory for {pedId} because the length is too low")
+  #     else:
+  #       dfs.append(clippedDf)
+    
+  #   self._clippedData = pd.concat(dfs, ignore_index=True)
+  
+  
   def _clip(self):
     logger.debug("clipping trajectories")
+    scenePolygon = TrajectoryUtils.scenePolygon(self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + 2)
     dfs = []
-    for pedId in self.uniquePedIds():
+    for pedId in  tqdm(self.uniquePedIds(), desc="clipping trajectories"):
       pedDf = self.getDfByUniqueTrackId(pedId)
-      clippedDf = TrajectoryUtils.clip(pedDf, "xCenter", "yCenter", "frame", self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + 2)
+      clippedDf = TrajectoryUtils.clipByRect(pedDf, "xCenter", "yCenter", "frame", scenePolygon)
       if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
-        logger.info(f"Disregarding trajectory for {pedId} because the length is too low")
+        logger.debug(f"Disregarding trajectory for {pedId} because the length is too low")
       else:
         dfs.append(clippedDf)
     

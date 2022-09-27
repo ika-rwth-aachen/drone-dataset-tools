@@ -87,6 +87,34 @@ class TrajectoryUtils:
     return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
 
   @staticmethod
+  def clipByRect(pedDf, xCol, yCol, frameCol, rect) -> pd.DataFrame:
+    """ Clip the trajectory with 150% rect clipping. """
+
+    # find entry and exit point frame number, keep all the points in between and disregard others. A trajectory may enter several times, but we don't need them.
+
+    entryFrame = -inf
+    exitFrame = inf
+
+    for idx, row in pedDf.iterrows():
+      if entryFrame == -inf:
+        # check if this row is an entry point
+        if rect.contains(Point(row[xCol], row[yCol])):
+          entryFrame = row[frameCol]
+          continue
+
+      if entryFrame > 0  and exitFrame == inf:
+        # check if this row is an exit point
+        if not rect.contains(Point(row[xCol], row[yCol])):
+          exitFrame = row[frameCol]
+          break
+    
+    # sometimes there are no exit frame. use the last frame
+    if exitFrame == inf:
+      exitFrame = row[frameCol]
+
+    return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
+
+  @staticmethod
   def getTranslationMatrix(localCenterPosition: Point) -> List[float]:
 
     return [1, 0, 0, 1, -localCenterPosition.x, -localCenterPosition.y]
