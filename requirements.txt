@@ -8,3 +8,4 @@ pyqt5==5.15.6
 sortedcontainers>=2.4.0
 shapely>=1.7.1
 tdqm>=4.15.0
+dill>=0.3.1.1

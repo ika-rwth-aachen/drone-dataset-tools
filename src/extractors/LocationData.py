@@ -5,6 +5,8 @@ from tools.UnitUtils import UnitUtils
 from tools.TrajectoryUtils import TrajectoryUtils
 from .SceneData import SceneData
 from tqdm import tqdm
+from dill import dump, load
+import os
 
 class LocationData:
 
@@ -186,13 +188,36 @@ class LocationData:
     })
     return allSceneDf
 
-  # def _createUniqueIntegerPedId(allSceneDf: pd.DataFrame):
-  #   uniqueTrackIds = allSceneDf["uniqueTrackId"].unique()
-  #   pass
+  #region cache
+  def madeLocationDir(self, outputDir):
+    locDir = os.path.join(outputDir, f"location-{self.locationId}")
+    os.makedirs(locDir, exist_ok = True)
+    return locDir
 
-  def saveCrossingDf(self, path):
+
+  def saveCrossingDf(self, outputDir):
+
+    locDir = self.madeLocationDir(outputDir)
+    fpath = os.path.join(locDir, "crossing.csv")
     crossingDf = self.getCrossingDf()
-    crossingDf.to_csv(path)
+    crossingDf.to_csv(fpath)
+
+  
+  def save(self, outputDir):
+
+    locDir = self.madeLocationDir(outputDir)
+    fpath = os.path.join(locDir, "all.dill")
+    with open(fpath, "wb") as fp:
+      dump(self, fp)
+      logging.info(f"saved to {fpath}")
+    
+  @staticmethod
+  def load(locDir):
+    fpath = os.path.join(locDir, "all.dill")
+    logging.info(f"reading from {fpath}")
+    with open(fpath, "rb") as fp:
+      return load(fp)
+  #endregion
 
 
 

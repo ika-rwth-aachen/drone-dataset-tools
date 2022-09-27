@@ -58,7 +58,6 @@ crossingDf = recordingData.getCrossingDf() # all the tracks are pedestrians who 
 **get pedestrian Ids**
 ```
 pedIds = recordingData.getPedIds() # all pedestrians
-crossingIds = recordingData.getCrossingPedIds() # pedestrians crossing
 ```
 
 **dataset selection by track Ids**
@@ -66,6 +65,14 @@ crossingIds = recordingData.getCrossingPedIds() # pedestrians crossing
 selectedDf = recordingData.getDfByTrackIds(trackIds) # trackIds is a set of actor ids.
 ```
 
+### Crossing data
+Currently we can extract pedestrian frames (only peds, no other traffic participants) who crosses the road in two approaches:
+1. By annotation. We manually annotated some track meta files. It's robust to errors.
+2. By scene config. We picked some scenes for a location. Using geometric intersection, we extract crossing trajectories. But this cannot filter out trajectories which were possibly wrongly classified as pedestrians. Also, it cannot capture the trajectories that leaves the bounding box of the scene very early. The scene configs can be found [here](../data/scenes/ind.json).
+```
+recordingData.getCrossingDfByAnnotations() 
+recordingData.getCrossingDfBySceneConfig(sceneConfigs, refresh=False, fps=2.5)
+```
 # LocationData
 Aggregation over recording data of a location
 
@@ -77,8 +84,17 @@ loc2data.getUniqueCrossingIds()
 
 **get all the crossing data**
 ```
-loc2data = loader.getLocationData(2)
+loc2data = loader.getLocationData(2) # by annotation
+loc2data = loader.getLocationData(2, useSceneConfigToExtract=True) by scene config
+
 crossingDf = loc2data.getCrossingDf()
+```
+
+**Processed data in files**
+```
+loc2data.saveCrossingDf("../data") # only crossing dataframe. 
+loc2data.save("../data") # whole thing as a dill object. 
+loc2dataFromFile = LocationData.load("../data/location-2")
 ```
 
 # SceneData
