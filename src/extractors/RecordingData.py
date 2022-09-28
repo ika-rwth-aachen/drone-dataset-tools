@@ -1,7 +1,7 @@
 import pandas as pd
 from sortedcontainers import SortedList
 from tools.TrajectoryUtils import TrajectoryUtils
-import logging
+from loguru import logger
 from tqdm import tqdm
 
 class RecordingData:
@@ -42,20 +42,25 @@ class RecordingData:
 
 
   def getCrossingDfBySceneConfig(self, sceneConfigs, refresh=False, fps=2.5):
-      logging.debug(f"getCrossingDfBySceneConfig from recording {self.recordingId}")
+      logger.debug(f"getCrossingDfBySceneConfig from recording {self.recordingId}")
     
       if self.__crossingDfBySceneConfig is None:
         sceneIds = list(sceneConfigs.keys())
         sceneDfs = []
         # 1. Get all clipped scene crossing data in their local coordinate system
         for sceneId  in sceneIds:
-          logging.info(f"extracting crossing data for scene {sceneId} from recording {self.recordingId}")
+          logger.info(f"extracting crossing data for scene {sceneId} from recording {self.recordingId}")
           sC = sceneConfigs[str(sceneId)]
           df = self.getCrossingDfForScene(sceneId, sC, refresh=False, fps=2.5)
-          df["sceneId"] = sceneId
-          sceneDfs.append(df)
+          if len(df) > 0:
+            df["sceneId"] = sceneId
+            sceneDfs.append(df)
         
-        self.__crossingDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
+        if len(sceneDfs) > 0:
+          self.__crossingDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
+        else:
+          logger.warning(f"No crossing data found for recording {self.recordingId}")
+          self.__crossingDfBySceneConfig = pd.DataFrame()
 
       return self.__crossingDfBySceneConfig
 
@@ -93,7 +98,9 @@ class RecordingData:
         pedDf["sceneId"] = sceneId
         sceneDfs.append(pedDf)
     
-    return pd.concat(sceneDfs, ignore_index=True)
+    if len(sceneDfs) > 0:
+      return pd.concat(sceneDfs, ignore_index=True)
+    return pd.DataFrame()
 
 
 

@@ -44,6 +44,12 @@ class SceneData:
     
     return self._pedIds
 
+  def uniqueClippedPedIds(self) -> np.ndarray:
+      clippedDf = self.getClippedDfs()
+      if len(clippedDf) > 0:
+        return clippedDf.uniqueTrackId.unique()
+      return []
+
 
   def getDfByUniqueTrackId(self, uniqueTrackId, clipped=False):
     return self.getDfByUniqueTrackIds([uniqueTrackId], clipped=clipped)
@@ -129,18 +135,27 @@ class SceneData:
     logger.debug("clipping trajectories")
     scenePolygon = TrajectoryUtils.scenePolygon(self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + 2)
     dfs = []
-    for pedId in  tqdm(self.uniquePedIds(), desc="clipping trajectories"):
+    for pedId in  tqdm(self.uniquePedIds(), desc=f"clipping trajectories for scene # {self.sceneId}"):
       pedDf = self.getDfByUniqueTrackId(pedId)
       clippedDf = TrajectoryUtils.clipByRect(pedDf, "xCenter", "yCenter", "frame", scenePolygon)
       if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
         logger.debug(f"Disregarding trajectory for {pedId} because the length is too low")
       else:
         dfs.append(clippedDf)
-    
-    self._clippedData = pd.concat(dfs, ignore_index=True)
+
+    if len(dfs) == 0:
+      """No data"""
+      self._clippedData = pd.DataFrame()
+    else:
+      self._clippedData = pd.concat(dfs, ignore_index=True)
+
   
   def getClippedDfs(self):
     if self._clippedData is None:
       self._clip()
     
     return self._clippedData
+
+  
+  def clippedSize(self):
+    return len(self.uniqueClippedPedIds())

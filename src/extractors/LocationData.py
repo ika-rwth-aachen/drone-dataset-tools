@@ -1,16 +1,17 @@
 import pandas as pd
 from sortedcontainers import SortedList
-import logging
+from loguru import logger
 from tools.UnitUtils import UnitUtils
 from tools.TrajectoryUtils import TrajectoryUtils
 from .SceneData import SceneData
 from tqdm import tqdm
 from dill import dump, load
 import os
+import functools
 
 class LocationData:
 
-  def __init__(self, locationId, recordingIds, recordingDataList, useSceneConfigToExtract=False):
+  def __init__(self, locationId, recordingIds, recordingDataList, useSceneConfigToExtract=False, precomputeSceneData=True):
 
 
     self.locationId = locationId
@@ -31,6 +32,9 @@ class LocationData:
 
     self.__sceneData = {}
 
+    if precomputeSceneData:
+      self._precomputeSceneData()
+
   
 
   def validateRecordingMeta(self):
@@ -50,6 +54,21 @@ class LocationData:
         if firstMeta[field] != otherMeta[field]:
           raise Exception(f"{field} value mismatch for {firstMeta['recordingId']} and {otherMeta['recordingId']}")
 
+  
+  def summary(self):
+
+    summary =  {
+      "#original frameRate": self.frameRate,
+      "#crossing trajectories": len(self.getUniqueCrossingIds()),
+      "#scene trajectories": functools.reduce(lambda acc, new: acc + new, [sceneData.clippedSize() for sceneData in self.__sceneData.values()])
+    }
+
+    for sceneId in self.__sceneData.keys():
+      summary[f"scene#{sceneId}"] = self.__sceneData[sceneId].clippedSize()
+
+    return summary
+  
+  #region extraction
   def getUniqueCrossingIds(self):
     """
     returns unique pedestrian ids
@@ -57,20 +76,6 @@ class LocationData:
 
     if self.__crossingIds is None:
       self.__crossingIds = SortedList()
-      # for recordingData in self.recordingDataList:
-      #   # crossingIds = recordingData.getCrossingIds()
-      #   try:
-          
-      #     crossingDf = recordingData.getCrossingDf()
-      #     if "uniqueTrackId" in crossingDf:
-      #       uniqueIds = crossingDf.uniqueTrackId.unique()
-      #       logging.info(f"crossing ids for {recordingData.recordingId}: {recordingData.getCrossingPedIds()}")
-      #       logging.info(f"uniqueIds for {recordingData.recordingId}: {uniqueIds}")
-      #       self.__crossingIds.update(uniqueIds)
-      #     else:
-      #       logging.warn(f"{recordingData.recordingId} does not have uniqueTrackId")
-      #   except Exception as e:
-      #     logging.warn(f"{recordingData.recordingId} has exception: {e}")
       crossingDf = self.getCrossingDf()
       self.__crossingIds.update(crossingDf.uniqueTrackId.unique())
 
@@ -97,19 +102,30 @@ class LocationData:
       for recordingData in tqdm(self.recordingDataList, desc="recording", position=0):
         try:
           crossingDf = self.getRecordingCrossingDf(recordingData)
-          logging.info(f"got crossing df for {recordingData.recordingId}")
+          logger.info(f"got crossing df for {recordingData.recordingId}")
           if "uniqueTrackId" not in crossingDf:
             raise Exception(f"{recordingData.recordingId} does not have uniqueTrackId")
           dfs.append(crossingDf)
         except Exception as e:
-          logging.warn(f"{recordingData.recordingId} has exception: {e}")
+          logger.warning(f"{recordingData.recordingId} has exception: {e}")
           # raise e
 
       self.__crossingDf = pd.concat(dfs, ignore_index=True)
     
     return self.__crossingDf
+  #endregion
 
-  
+  #region scene
+  def _precomputeSceneData(self):
+    sceneConfigs = self.getSceneConfig()
+    sceneIds = list(sceneConfigs.keys())
+
+    for sceneId in sceneIds:
+      sceneConfig = sceneConfigs[sceneId]
+      self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
+
+    
+
   def getSceneConfig(self):
     allLocationSceneConfig = UnitUtils.loadSceneConfiguration()
     return allLocationSceneConfig[str(self.locationId)]
@@ -120,6 +136,9 @@ class LocationData:
     if self.useSceneConfigToExtract:
       crossingDf = self.getCrossingDf()
       return crossingDf[crossingDf["sceneId"] == str(sceneId)].copy().reset_index()
+
+    
+    logger.info(f"collecting scene crossing data from annotated data for scene {sceneId}")
 
     sceneDfs = []
     sceneConfig = self.getSceneConfig()[str(sceneId)]
@@ -157,7 +176,9 @@ class LocationData:
 
     return self.__sceneData[sceneId]
 
-  
+  #endregion
+
+  #region third party formats  
   def getCrossingDataForTransformer(self):
     """
     csv with frame, ped, x, y
@@ -188,6 +209,8 @@ class LocationData:
     })
     return allSceneDf
 
+  #endregion
+
   #region cache
   def madeLocationDir(self, outputDir):
     locDir = os.path.join(outputDir, f"location-{self.locationId}")
@@ -209,12 +232,12 @@ class LocationData:
     fpath = os.path.join(locDir, "all.dill")
     with open(fpath, "wb") as fp:
       dump(self, fp)
-      logging.info(f"saved to {fpath}")
+      logger.info(f"saved to {fpath}")
     
   @staticmethod
   def load(locDir):
     fpath = os.path.join(locDir, "all.dill")
-    logging.info(f"reading from {fpath}")
+    logger.info(f"reading from {fpath}")
     with open(fpath, "rb") as fp:
       return load(fp)
   #endregion
