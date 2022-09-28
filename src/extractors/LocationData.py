@@ -133,15 +133,16 @@ class LocationData:
   
   def getSceneCrossingDf(self, sceneId, boxWidth, boxHeight) -> pd.DataFrame:
 
+    sceneId = str(sceneId)
     if self.useSceneConfigToExtract:
       crossingDf = self.getCrossingDf()
-      return crossingDf[crossingDf["sceneId"] == str(sceneId)].copy().reset_index()
+      return crossingDf[crossingDf["sceneId"] == sceneId].copy().reset_index()
 
     
     logger.info(f"collecting scene crossing data from annotated data for scene {sceneId}")
 
     sceneDfs = []
-    sceneConfig = self.getSceneConfig()[str(sceneId)]
+    sceneConfig = self.getSceneConfig()[sceneId]
 
     # create polygon
     scenePolygon = TrajectoryUtils.scenePolygon(sceneConfig, boxWidth, boxHeight)
@@ -160,6 +161,7 @@ class LocationData:
   
   def getSceneCrossingData(self, sceneId, boxWidth, boxHeight, refresh=False, fps=2.5) -> SceneData:
 
+    sceneId = str(sceneId)
     if sceneId not in self.__sceneData or refresh:
 
       data = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
@@ -193,7 +195,8 @@ class LocationData:
       sceneConfig = sceneConfigs[str(sceneId)]
       sceneData = self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
       sceneLocalDf = sceneData.getDataInSceneCorrdinates()
-      sceneDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId"]].copy())
+      if len(sceneLocalDf) > 0:
+        sceneDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId"]].copy())
 
     allSceneDf = pd.concat(sceneDfs, ignore_index=True)
     # 2. create unique integer ped ids (they are already int)
