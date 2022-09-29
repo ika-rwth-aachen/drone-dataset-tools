@@ -32,6 +32,8 @@ class LocationData:
 
     self.__sceneData = {}
 
+    self._mergedSceneDfs = {}
+
     if precomputeSceneData:
       self._precomputeSceneData()
 
@@ -159,7 +161,19 @@ class LocationData:
     return pd.concat(sceneDfs, ignore_index=True)
 
   
-  def getSceneCrossingData(self, sceneId, boxWidth, boxHeight, refresh=False, fps=2.5) -> SceneData:
+  def getSceneCrossingData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=2.5) -> SceneData:
+    """_summary_
+
+    Args:
+        sceneId (_type_): scene id from scene config file
+        boxWidth (int, optional): width of the bounding box to filter unrelated trajectories. Runs along the road's length. Defaults to 6.
+        boxHeight (int, optional): height of the bounding box to filter unrelated trajectories. Runs along the road's width. Defaults to 6.
+        refresh (bool, optional): force re-filter when bounding box changes. Results are cached when run. Defaults to False.
+        fps (float, optional): frame rate conversion from 25. Defaults to 2.5.
+
+    Returns:
+        SceneData: _description_
+    """
 
     sceneId = str(sceneId)
     if sceneId not in self.__sceneData or refresh:
@@ -178,10 +192,43 @@ class LocationData:
 
     return self.__sceneData[sceneId]
 
+  
+  def mergeScenesByRoadWidth(self):
+    """
+      merges local coordinates
+    """
+
+    if len(self._mergedSceneDfs ) > 0:
+      return self._mergedSceneDfs
+
+    sceneConfigs = self.getSceneConfig()
+    sceneIds = list(sceneConfigs.keys())
+
+    groups = {}
+    for sceneId in sceneIds:
+      sceneConfig = sceneConfigs[sceneId]
+      if sceneConfig["roadWidth"] not in groups:
+        groups[sceneConfig["roadWidth"]] = []
+      groups[sceneConfig["roadWidth"]].append(self.getSceneCrossingData(sceneId, 0, 0))
+
+    for roadWidth in tqdm(groups, desc="merging scenes"):
+      groupDfs = []
+      group = groups[roadWidth]
+      for sceneData in group:
+        sceneLocalDf = sceneData.getDataInSceneCorrdinates()
+        groupDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "recordingId"]].copy())
+      groupDf = pd.concat(groupDfs, ignore_index=True)
+      groupDf["roadWidth"] = roadWidth
+      self._mergedSceneDfs[roadWidth] = groupDf
+
+    return self._mergedSceneDfs
+
+
+
   #endregion
 
   #region third party formats  
-  def getCrossingDataForTransformer(self):
+  def getCrossingDataForTransformerNoMerge(self):
     """
     csv with frame, ped, x, y
     """
@@ -196,7 +243,7 @@ class LocationData:
       sceneData = self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
       sceneLocalDf = sceneData.getDataInSceneCorrdinates()
       if len(sceneLocalDf) > 0:
-        sceneDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId"]].copy())
+        sceneDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId", "recordingId"]].copy())
 
     allSceneDf = pd.concat(sceneDfs, ignore_index=True)
     # 2. create unique integer ped ids (they are already int)
@@ -211,6 +258,17 @@ class LocationData:
       "sceneY": "y"
     })
     return allSceneDf
+
+  def getCrossingDataForTransformer(self):
+    allSceneDfs = {}
+    for roadWidth in self._mergedSceneDfs:
+      allSceneDfs[roadWidth] = self._mergedSceneDfs[roadWidth].copy().rename(columns={
+                                                                              "uniqueTrackId": "ped", 
+                                                                              "sceneX": "x", 
+                                                                              "sceneY": "y"
+                                                                            })
+    return allSceneDf
+
 
   #endregion
 
