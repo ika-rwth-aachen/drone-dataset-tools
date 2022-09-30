@@ -261,8 +261,9 @@ class LocationData:
 
   def getCrossingDataForTransformer(self):
     allSceneDfs = {}
-    for roadWidth in self._mergedSceneDfs:
-      allSceneDfs[roadWidth] = self._mergedSceneDfs[roadWidth].copy().rename(columns={
+    mergedSceneDfs = self.mergeScenesByRoadWidth()
+    for roadWidth in mergedSceneDfs:
+      allSceneDfs[roadWidth] = mergedSceneDfs[roadWidth].copy().rename(columns={
                                                                               "uniqueTrackId": "ped", 
                                                                               "sceneX": "x", 
                                                                               "sceneY": "y"
