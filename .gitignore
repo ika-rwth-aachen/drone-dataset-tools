@@ -2,3 +2,4 @@
 *.csv
 *.pyc
 *.mp4
+*.dill
