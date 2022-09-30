@@ -267,7 +267,7 @@ class LocationData:
                                                                               "sceneX": "x", 
                                                                               "sceneY": "y"
                                                                             })
-    return allSceneDf
+    return allSceneDfs
 
 
   #endregion
