@@ -94,6 +94,13 @@ class TrajectoryVisualizer:
     Y = [sceneData.centerY/ -ortho_px_to_meter]
     self.ax.plot(X, Y, marker='o', markersize=10, markerfacecolor="yellow", markeredgecolor="black")
 
+  
+  def showLocalTrajectories(self, df, idCol, xCol, yCol):
+    pedIds = df[idCol].unique()
+    for pedId in pedIds:
+        pedDf = df[df[idCol] == pedId]
+        plt.plot(pedDf[xCol], pedDf[yCol])
+
 
 
 

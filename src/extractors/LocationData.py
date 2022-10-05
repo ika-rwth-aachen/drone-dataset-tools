@@ -193,12 +193,12 @@ class LocationData:
     return self.__sceneData[sceneId]
 
   
-  def mergeScenesByRoadWidth(self):
+  def mergeScenesByRoadWidth(self, refresh=False):
     """
       merges local coordinates
     """
 
-    if len(self._mergedSceneDfs ) > 0:
+    if len(self._mergedSceneDfs ) > 0 and not refresh:
       return self._mergedSceneDfs
 
     sceneConfigs = self.getSceneConfig()
@@ -216,7 +216,7 @@ class LocationData:
       group = groups[roadWidth]
       for sceneData in group:
         sceneLocalDf = sceneData.getDataInSceneCorrdinates()
-        groupDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "recordingId"]].copy())
+        groupDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId", "recordingId"]].copy())
       groupDf = pd.concat(groupDfs, ignore_index=True)
       groupDf["roadWidth"] = roadWidth
       self._mergedSceneDfs[roadWidth] = groupDf
@@ -259,9 +259,9 @@ class LocationData:
     })
     return allSceneDf
 
-  def getCrossingDataForTransformer(self):
+  def getCrossingDataForTransformer(self, refresh=False):
     allSceneDfs = {}
-    mergedSceneDfs = self.mergeScenesByRoadWidth()
+    mergedSceneDfs = self.mergeScenesByRoadWidth(refresh=refresh)
     for roadWidth in mergedSceneDfs:
       allSceneDfs[roadWidth] = mergedSceneDfs[roadWidth].copy().rename(columns={
                                                                               "uniqueTrackId": "ped", 
