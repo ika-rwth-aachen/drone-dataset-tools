@@ -101,7 +101,7 @@ loc2dataFromFile = LocationData.load("../data/location-2")
 
 # SceneCrossingData
 
-This class holds the data of a scene. The purpose of this class is to crop trajectories to the scene area and transfrom them to scene coordinate system. **getClippedDfs** method returns the clipped trajectories. Here goes the important columns:
+This class holds the data of a scene. The purpose of this class is to crop trajectories to the scene area and transfrom them to scene coordinate system. **getClippedPedDfs** method returns the clipped trajectories. Here goes the important columns:
 - sceneId: a numeric id represent a scene location. It will be the same value for a SceneCrossingData object
 - sceneX, sceneY: xCenter, yCenter transformed into scene origin.
 
@@ -113,7 +113,7 @@ This class holds the data of a scene. The purpose of this class is to crop traje
 
 **Get clipped trajectories**
 ```
-sceneLocalDf = scene6Data.getClippedDfs()
+sceneLocalDf = scene6Data.getClippedPedDfs()
 sceneLocalDf.head()
 ```
 

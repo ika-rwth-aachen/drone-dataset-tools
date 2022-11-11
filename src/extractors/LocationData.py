@@ -39,6 +39,9 @@ class LocationData:
     self.__crossingDf = None
     self.__crossingIds = None
 
+    self.__otherDf = None
+    self.__otherIds = None
+
     self.__SceneCrossingData = {}
 
     self._mergedSceneDfs = {}
@@ -71,11 +74,11 @@ class LocationData:
     summary =  {
       "#original frameRate": self.frameRate,
       "#crossing trajectories": len(self.getUniqueCrossingIds()),
-      "#scene trajectories": functools.reduce(lambda acc, new: acc + new, [SceneCrossingData.clippedSize() for SceneCrossingData in self.__SceneCrossingData.values()])
+      "#scene trajectories": functools.reduce(lambda acc, new: acc + new, [SceneCrossingData.clippedPedSize() for SceneCrossingData in self.__SceneCrossingData.values()])
     }
 
     for sceneId in self.__SceneCrossingData.keys():
-      summary[f"scene#{sceneId}"] = self.__SceneCrossingData[sceneId].clippedSize()
+      summary[f"scene#{sceneId}"] = self.__SceneCrossingData[sceneId].clippedPedSize()
 
     return summary
   
@@ -104,26 +107,63 @@ class LocationData:
       if self.useSceneConfigToExtract:
         crossingDf = recordingData.getCrossingDfBySceneConfig(self.getSceneConfig())
       else:
-        crossingDf = recordingData.getCrossingDfByAnnotations()
+        crossingDf = recordingData.getCrossingDfByAnnotations() # it does not have scene id!
       return crossingDf
 
+  def getRecordingOtherDf(self, recordingData):
+      return recordingData.getOtherDfBySceneConfig(self.getSceneConfig())
+
   def getCrossingDf(self):
+    """returns crossing data for all the scenes and recordings
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        _type_: _description_
+    """
     if self.__crossingDf is None:
-      dfs = []
-      for recordingData in tqdm(self.recordingDataList, desc="recording", position=0):
+      crossingDfs = []
+      for recordingData in tqdm(self.recordingDataList, desc="crossing recording", position=0):
         try:
           crossingDf = self.getRecordingCrossingDf(recordingData)
           logger.info(f"got crossing df for {recordingData.recordingId}")
           if "uniqueTrackId" not in crossingDf:
             raise Exception(f"{recordingData.recordingId} does not have uniqueTrackId")
-          dfs.append(crossingDf)
+          crossingDfs.append(crossingDf)
         except Exception as e:
           logger.warning(f"{recordingData.recordingId} has exception: {e}")
           # raise e
 
-      self.__crossingDf = pd.concat(dfs, ignore_index=True)
+      self.__crossingDf = pd.concat(crossingDfs, ignore_index=True)
     
     return self.__crossingDf
+
+  def getOtherDf(self):
+    """returns other data for all the scenes and recordings
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if self.__otherDf is None:
+      otherDfs = []
+      for recordingData in tqdm(self.recordingDataList, desc="other recording", position=0):
+        try:
+          otherDf = self.getRecordingOtherDf(recordingData)
+          logger.info(f"got other df for {recordingData.recordingId}")
+          if "uniqueTrackId" not in otherDf:
+            raise Exception(f"{recordingData.recordingId} does not have uniqueTrackId")
+          otherDfs.append(otherDf)
+        except Exception as e:
+          logger.warning(f"{recordingData.recordingId} has exception: {e}")
+          # raise e
+
+      self.__otherDf = pd.concat(otherDfs, ignore_index=True)
+    
+    return self.__otherDf
   #endregion
 
   #region scene
@@ -145,6 +185,7 @@ class LocationData:
   def getSceneCrossingDf(self, sceneId, boxWidth, boxHeight) -> pd.DataFrame:
 
     sceneId = str(sceneId)
+
     if self.useSceneConfigToExtract:
       crossingDf = self.getCrossingDf()
       return crossingDf[crossingDf["sceneId"] == sceneId].copy().reset_index()
@@ -166,8 +207,15 @@ class LocationData:
         pedDf = pedDf.copy() # we can modify without concern now
         pedDf["sceneId"] = sceneId
         sceneDfs.append(pedDf)
-    
+      
     return pd.concat(sceneDfs, ignore_index=True)
+
+    
+  def getSceneOtherDf(self, sceneId) -> pd.DataFrame:
+
+    sceneId = str(sceneId)
+    otherDf = self.getOtherDf()
+    return otherDf[otherDf["sceneId"] == sceneId].copy().reset_index()
 
   
   def getSceneCrossingData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=2.5) -> SceneCrossingData:
@@ -187,7 +235,8 @@ class LocationData:
     sceneId = str(sceneId)
     if sceneId not in self.__SceneCrossingData or refresh:
 
-      data = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
+      pedData = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
+      otherData = self.getSceneOtherDf(sceneId)
       sceneConfig = self.getSceneConfig()[str(sceneId)]
       self.__SceneCrossingData[sceneId] = SceneCrossingData(
                                             self.locationId, 
@@ -196,7 +245,8 @@ class LocationData:
                                             sceneConfig, 
                                             boxWidth, 
                                             boxHeight, 
-                                            data
+                                            pedData=pedData,
+                                            otherData=otherData
                                           )
 
     return self.__SceneCrossingData[sceneId]
@@ -224,7 +274,7 @@ class LocationData:
       groupDfs = []
       group = groups[roadWidth]
       for SceneCrossingData in group:
-        sceneLocalDf = SceneCrossingData.getDataInSceneCorrdinates()
+        sceneLocalDf = SceneCrossingData.getPedDataInSceneCorrdinates()
         groupDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId", "recordingId"]].copy())
       groupDf = pd.concat(groupDfs, ignore_index=True)
       groupDf["roadWidth"] = roadWidth
@@ -250,7 +300,7 @@ class LocationData:
     for sceneId  in sceneIds:
       sceneConfig = sceneConfigs[str(sceneId)]
       SceneCrossingData = self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
-      sceneLocalDf = SceneCrossingData.getDataInSceneCorrdinates()
+      sceneLocalDf = SceneCrossingData.getPedDataInSceneCorrdinates()
       if len(sceneLocalDf) > 0:
         sceneDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId", "recordingId"]].copy())
 

@@ -5,6 +5,8 @@ from tools.TrajectoryUtils import TrajectoryUtils
 from loguru import logger
 from tqdm import tqdm
 
+OTHER_CLIP_LENGTH = 50
+
 class SceneCrossingData:
   """SceneCrossingData only has crossing trajectories.
   """
@@ -16,7 +18,8 @@ class SceneCrossingData:
     sceneConfig, 
     boxWidth, 
     boxHeight, 
-    data: pd.DataFrame
+    pedData: pd.DataFrame,
+    otherData: pd.DataFrame
     ):
     self.locationId = locationId
     self.orthoPxToMeter = orthoPxToMeter # for visualization
@@ -30,52 +33,91 @@ class SceneCrossingData:
     self.boxHeight = boxHeight
     self.polygon = TrajectoryUtils.scenePolygon(sceneConfig, boxWidth, boxHeight)
 
-    self.data = data
-    self._clippedData = None
-    self._dataLocal = None
-
+    self.pedData = pedData
+    self._clippedPedData = None
+    self._pedDataLocal = None
     self._pedIds = None
 
+    self.otherData = otherData
+    self._clippedOtherData = None
+    self._otherDataLocal = None
+    self._otherIds = None
+
+
     self._dropWorldCoordinateColumns()
-    self._transformToLocalCoordinate()
+    self._transformToLocalCoordinates()
 
 
   def uniquePedIds(self) -> np.ndarray:
     if self._pedIds is None:
-      self._pedIds = self.data.uniqueTrackId.unique()
+      self._pedIds = self.pedData.uniqueTrackId.unique()
     
     return self._pedIds
 
   def uniqueClippedPedIds(self) -> np.ndarray:
-      clippedDf = self.getClippedDfs()
+      clippedDf = self.getClippedPedDfs()
+      if len(clippedDf) > 0:
+        return clippedDf.uniqueTrackId.unique()
+      return []
+
+  def uniqueOtherIds(self) -> np.ndarray:
+    if self._otherIds is None:
+      self._otherIds = self.otherData.uniqueTrackId.unique()
+    
+    return self._otherIds
+
+  def uniqueClippedOtherIds(self) -> np.ndarray:
+      clippedDf = self.getClippedOtherDfs()
       if len(clippedDf) > 0:
         return clippedDf.uniqueTrackId.unique()
       return []
 
 
-  def getDfByUniqueTrackId(self, uniqueTrackId, clipped=False):
-    return self.getDfByUniqueTrackIds([uniqueTrackId], clipped=clipped)
+  def getPedDfByUniqueTrackId(self, uniqueTrackId, clipped=False):
+    return self.getPedDfByUniqueTrackIds([uniqueTrackId], clipped=clipped)
 
-  def getDfByUniqueTrackIds(self, uniqueTrackIds, clipped=False):
+  def getPedDfByUniqueTrackIds(self, uniqueTrackIds, clipped=False):
       
       if clipped:
-        clippedDf = self.getClippedDfs()
+        clippedDf = self.getClippedPedDfs()
         criterion = clippedDf['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
         return clippedDf[criterion]
       else:
-        criterion = self.data['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
-        return self.data[criterion]
+        criterion = self.pedData['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
+        return self.pedData[criterion]
+
+  def getOtherDfByUniqueTrackId(self, uniqueTrackId, clipped=False):
+    return self.getOtherDfByUniqueTrackIds([uniqueTrackId], clipped=clipped)
+
+  def getOtherDfByUniqueTrackIds(self, uniqueTrackIds, clipped=False):
+      
+      if clipped:
+        clippedDf = self.getClippedOtherDfs()
+        criterion = clippedDf['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
+        return clippedDf[criterion]
+      else:
+        criterion = self.otherData['uniqueTrackId'].map(lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
+        return self.otherData[criterion]
   
   def _dropWorldCoordinateColumns(self):
       logger.debug("Dropping , lonVelocity, latVelocity, lonAcceleration, latAcceleration")
-      self.data = self.data.drop(["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
+      self.pedData = self.pedData.drop(["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
+      self.otherData = self.otherData.drop(["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
   
-  def _transformToLocalCoordinate(self):
+  def _transformToLocalCoordinates(self):
       logger.debug("transforming trajectories to scene coordinates")
 
       # translate and rotate.
-      clippedDf = self.getClippedDfs()
-      
+      pedDf = self.getClippedPedDfs()
+      self._pedDataLocal = self._transformDfToLocalCoordinates(pedDf)
+
+      otherDf = self.getClippedOtherDfs()
+      self._otherDataLocal = self._transformDfToLocalCoordinates(otherDf)
+
+      pass
+
+  def _transformDfToLocalCoordinates(self, df):
+
       # transform position
       # transform velocity
       # transform heading
@@ -90,7 +132,7 @@ class SceneCrossingData:
       sceneY = []
 
 
-      for idx, row in clippedDf.iterrows():
+      for idx, row in df.iterrows():
 
         position = Point(row["xCenter"], row["yCenter"])
         # velocity = (row["xVelocity"], row["yVelocity"])
@@ -104,41 +146,25 @@ class SceneCrossingData:
         sceneY.append(newPosition.y)
 
       
-      clippedDf["sceneX"] = sceneX
-      clippedDf["sceneY"] = sceneY
-      self._dataLocal = clippedDf
+      df["sceneX"] = sceneX
+      df["sceneY"] = sceneY
+      return df
 
-      pass
   
-  def getDataInSceneCorrdinates(self):
-    if self._dataLocal is None:
+  def getPedDataInSceneCorrdinates(self):
+    if self._pedDataLocal is None:
       self.transformToLocalCoordinate()
     
-    return self._dataLocal
+    return self._pedDataLocal
   
+  #region clipping
   
-
-  
-  # def _clip(self):
-  #   logger.debug("clipping trajectories")
-  #   dfs = []
-  #   for pedId in  tqdm(self.uniquePedIds(), desc="clipping trajectories"):
-  #     pedDf = self.getDfByUniqueTrackId(pedId)
-  #     clippedDf = TrajectoryUtils.clip(pedDf, "xCenter", "yCenter", "frame", self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + 2)
-  #     if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
-  #       logger.debug(f"Disregarding trajectory for {pedId} because the length is too low")
-  #     else:
-  #       dfs.append(clippedDf)
-    
-  #   self._clippedData = pd.concat(dfs, ignore_index=True)
-  
-  
-  def _clip(self):
+  def _clipPed(self):
     logger.debug("clipping trajectories")
-    scenePolygon = TrajectoryUtils.scenePolygon(self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + 2)
+    scenePolygon = TrajectoryUtils.scenePolygon(self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"] + 2)
     dfs = []
-    for pedId in  tqdm(self.uniquePedIds(), desc=f"clipping trajectories for scene # {self.sceneId}"):
-      pedDf = self.getDfByUniqueTrackId(pedId)
+    for pedId in  tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId}"):
+      pedDf = self.getPedDfByUniqueTrackId(pedId)
       clippedDf = TrajectoryUtils.clipByRect(pedDf, "xCenter", "yCenter", "frame", scenePolygon)
       if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
         logger.debug(f"Disregarding trajectory for {pedId} because the length is too low")
@@ -146,18 +172,47 @@ class SceneCrossingData:
         dfs.append(clippedDf)
 
     if len(dfs) == 0:
-      """No data"""
-      self._clippedData = pd.DataFrame()
+      """No pedData"""
+      self._clippedPedData = pd.DataFrame()
     else:
-      self._clippedData = pd.concat(dfs, ignore_index=True)
+      self._clippedPedData = pd.concat(dfs, ignore_index=True)
 
   
-  def getClippedDfs(self):
-    if self._clippedData is None:
-      self._clip()
+  def _clipOther(self):
+    logger.debug("clipping other trajectories")
+    # we will clip with the bounding box + 50 meters
+    scenePolygon = TrajectoryUtils.scenePolygon(self.sceneConfig, self.sceneConfig["boxWidth"] + 50, self.sceneConfig["roadWidth"] + 2)
+    dfs = []
+    for otherId in  tqdm(self.uniqueOtherIds(), desc=f"clipping other trajectories for scene # {self.sceneId}"):
+      otherDf = self.getOtherDfByUniqueTrackId(otherId)
+      clippedDf = TrajectoryUtils.clipByRect(otherDf, "xCenter", "yCenter", "frame", scenePolygon)
+      if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
+        logger.debug(f"Disregarding trajectory for {otherId} because the length is too low")
+      else:
+        dfs.append(clippedDf)
+
+    if len(dfs) == 0:
+      """No pedData"""
+      self._clippedOtherData = pd.DataFrame()
+    else:
+      self._clippedOtherData = pd.concat(dfs, ignore_index=True)
+
+  
+  def getClippedPedDfs(self):
+    if self._clippedPedData is None:
+      self._clipPed()
     
-    return self._clippedData
+    return self._clippedPedData
+  
+  def getClippedOtherDfs(self):
+    if self._clippedOtherData is None:
+      self._clipOther()
+    
+    return self._clippedOtherData
 
   
-  def clippedSize(self):
+  def clippedPedSize(self):
     return len(self.uniqueClippedPedIds())
+
+  def clippedOtherSize(self):
+    return len(self.uniqueClippedOtherIds())

@@ -23,6 +23,7 @@ class RecordingData:
 
     self.__crossingDfByAnnotation = None
     self.__crossingDfBySceneConfig = None
+    self.__otherDfBySceneConfig = None
     self.__SceneCrossingData = {}
 
     self.__trackIdClassMap = {}
@@ -90,11 +91,29 @@ class RecordingData:
 
     return SortedList(self.tracksMetaDf[(self.tracksMetaDf['class'] == 'pedestrian') & (self.tracksMetaDf['crossing'] == 'yes') ]['trackId'].tolist())
 
-  def getCrossingDfByAnnotations(self):
+  def getCrossingDfByAnnotations(self, sceneConfigs):
     if self.__crossingDfByAnnotation is None:
       crossingIds = self._getCrossingPedIdsByAnnotation()
       self.__crossingDfByAnnotation = self.getDfByTrackIds(crossingIds)
 
+      
+      # sceneIds = list(sceneConfigs.keys())
+      # sceneDfs = []
+      # # 1. Get all clipped scene crossing data in their local coordinate system
+      # for sceneId  in sceneIds:
+      #   logger.info(f"extracting crossing data for scene {sceneId} from recording {self.recordingId}")
+      #   sC = sceneConfigs[str(sceneId)]
+      #   df = self.getCrossingDfForScene(sceneId, sC, refresh=False, fps=2.5)
+      #   if len(df) > 0:
+      #     sceneDfs.append(df)
+      
+      # if len(sceneDfs) > 0:
+      #   self.__crossingDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
+      # else:
+      #   logger.warning(f"No crossing data found for recording {self.recordingId}")
+      #   self.__crossingDfBySceneConfig = pd.DataFrame()
+
+    raise Exception("getCrossingDfByAnnotations does not have scene annotation")
     return self.__crossingDfByAnnotation
 
 
@@ -110,7 +129,6 @@ class RecordingData:
           sC = sceneConfigs[str(sceneId)]
           df = self.getCrossingDfForScene(sceneId, sC, refresh=False, fps=2.5)
           if len(df) > 0:
-            df["sceneId"] = sceneId
             sceneDfs.append(df)
         
         if len(sceneDfs) > 0:
@@ -120,6 +138,28 @@ class RecordingData:
           self.__crossingDfBySceneConfig = pd.DataFrame()
 
       return self.__crossingDfBySceneConfig
+
+  def getOtherDfBySceneConfig(self, sceneConfigs, refresh=False, fps=2.5):
+      logger.debug(f"getOtherDfBySceneConfig from recording {self.recordingId}")
+    
+      if self.__otherDfBySceneConfig is None:
+        sceneIds = list(sceneConfigs.keys())
+        sceneDfs = []
+        # 1. Get all clipped scene crossing data in their local coordinate system
+        for sceneId  in sceneIds:
+          logger.info(f"extracting other data for scene {sceneId} from recording {self.recordingId}")
+          sC = sceneConfigs[str(sceneId)]
+          df = self.getOtherDfForScene(sceneId, sC, refresh=False, fps=2.5)
+          if len(df) > 0:
+            sceneDfs.append(df)
+        
+        if len(sceneDfs) > 0:
+          self.__otherDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
+        else:
+          logger.warning(f"No crossing data found for recording {self.recordingId}")
+          self.__otherDfBySceneConfig = pd.DataFrame()
+
+      return self.__otherDfBySceneConfig
 
 
   def getSceneCrossingData(self, sceneId, sceneConfig, refresh=False, fps=2.5):
@@ -132,7 +172,8 @@ class RecordingData:
     
     if sceneId not in self.__SceneCrossingData or refresh:
 
-      data = self.getCrossingDfForScene(sceneId, sceneConfig, refresh=False, fps=2.5)
+      pedData = self.getCrossingDfForScene(sceneId, sceneConfig, refresh=False, fps=2.5)
+      otherData = self.getOtherDfForScene(sceneId, sceneConfig, refresh=False, fps=2.5)
       self.__SceneCrossingData[sceneId] = SceneCrossingData(
                                             self.locationId, 
                                             self.orthoPxToMeter,
@@ -140,12 +181,24 @@ class RecordingData:
                                             sceneConfig, 
                                             sceneConfig["boxWidth"], 
                                             sceneConfig["roadWidth"],
-                                            data
+                                            pedData=pedData,
+                                            otherData=otherData
                                           )
 
     return self.__SceneCrossingData[sceneId]
 
   def getCrossingDfForScene(self, sceneId, sceneConfig, refresh=False, fps=2.5) -> pd.DataFrame:
+    """Gets the pedestrian trajectories that crosses the scene
+
+    Args:
+        sceneId (_type_): _description_
+        sceneConfig (_type_): _description_
+        refresh (bool, optional): _description_. Defaults to False.
+        fps (float, optional): _description_. Defaults to 2.5.
+
+    Returns:
+        pd.DataFrame: _description_
+    """
 
     sceneDfs = []
 
@@ -155,18 +208,58 @@ class RecordingData:
     pedIds = self.getPedIds()
     for pedId in tqdm(pedIds, desc="pedIds", leave=True, position=0):
       pedDf = self.getDfByTrackIds([pedId])
-      # trajSpline = TrajectoryUtils.dfToSplines(pedDf, "xCenter", "yCenter", 1)
-      # if TrajectoryUtils.doesIntersect(scenePolygon, trajSpline):
-      #   pedDf = pedDf.copy() # we can modify without concern now
-      #   pedDf["sceneId"] = sceneId
-      #   pedDf["roadWidth"] = sceneConfig["roadWidth"]
-      #   sceneDfs.append(pedDf)
       df  = TrajectoryUtils.getDfIfDfIntersect(sceneId=sceneId, sceneConfig=sceneConfig, scenePolygon=scenePolygon, df=pedDf)
       if df is not None:
+        df["sceneId"] = sceneId
         sceneDfs.append(df)
     
     if len(sceneDfs) > 0:
       return pd.concat(sceneDfs, ignore_index=True)
+    return pd.DataFrame()
+
+  def getOtherDfForScene(self, sceneId, sceneConfig, refresh=False, fps=2.5) -> pd.DataFrame:
+    otherDfs = []
+    for otherClass in [TrackClass.Car, TrackClass.Bicycle, TrackClass.Truck_Bus]:
+      otherDfs.append(
+        self.getOtherDfForSceneByClass(
+          otherClass=otherClass,
+          sceneId=sceneId,
+          sceneConfig=sceneConfig,
+          refresh=refresh,
+          fps=fps
+        )
+      )
+    return pd.concat(otherDfs, ignore_index=True)
+
+
+  def getOtherDfForSceneByClass(self, otherClass:TrackClass, sceneId, sceneConfig, refresh=False, fps=2.5) -> pd.DataFrame:
+    """Gets all but pedestrians that crosses the scene
+
+    Args:
+        sceneId (_type_): _description_
+        sceneConfig (_type_): _description_
+        refresh (bool, optional): _description_. Defaults to False.
+        fps (float, optional): _description_. Defaults to 2.5.
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    otherDfs = []
+
+    # create polygon
+    scenePolygon = TrajectoryUtils.scenePolygon(sceneConfig, sceneConfig["boxWidth"], sceneConfig["roadWidth"] / 2)
+    # create splines
+    otherIds = self.getIdsByClass(otherClass.value)
+    for otherId in tqdm(otherIds, desc=f"{otherClass.value}-Ids", leave=True, position=0):
+      inputDf = self.getDfByTrackIds([otherId])
+      df  = TrajectoryUtils.getDfIfDfIntersect(sceneId=sceneId, sceneConfig=sceneConfig, scenePolygon=scenePolygon, df=inputDf)
+      if df is not None:
+        df["sceneId"] = sceneId
+        df["class"] = otherClass.value
+        otherDfs.append(df)
+    
+    if len(otherDfs) > 0:
+      return pd.concat(otherDfs, ignore_index=True)
     return pd.DataFrame()
 
 

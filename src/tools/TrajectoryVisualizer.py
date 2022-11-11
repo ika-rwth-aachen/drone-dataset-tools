@@ -59,29 +59,44 @@ class TrajectoryVisualizer:
       pedDf = locationData.getCrossingDfByUniqueTrackId(uniqueTrackId)
       self.plot(locationData.orthoPxToMeter, pedDf)
 
-  def showLocationSceneCrossingData(self, SceneCrossingData: SceneCrossingData, onlyClipped=False, showLocal=False):
+  def showLocationSceneCrossingData(self, sceneCrossingData: SceneCrossingData, onlyClipped=False, showLocal=False, showOthers=False):
 
-    self.initPlot(SceneCrossingData.data.recordingId[0], f"Trajectories for location{SceneCrossingData.locationId} and scene {SceneCrossingData.sceneId}")
+    self.initPlot(sceneCrossingData.pedData.recordingId[0], f"Trajectories for location{sceneCrossingData.locationId} and scene {sceneCrossingData.sceneId}")
 
-    uniqueCrossingIds = SceneCrossingData.uniquePedIds()
+    # show pedestrians
+    uniqueCrossingIds = sceneCrossingData.uniquePedIds()
     for uniqueTrackId in uniqueCrossingIds:
       if not onlyClipped:
-        pedDf = SceneCrossingData.getDfByUniqueTrackId(uniqueTrackId)
-        self.plot(SceneCrossingData.orthoPxToMeter, pedDf)
+        pedDf = sceneCrossingData.getPedDfByUniqueTrackId(uniqueTrackId)
+        self.plot(sceneCrossingData.orthoPxToMeter, pedDf)
       
-      clippedDf = SceneCrossingData.getDfByUniqueTrackId(uniqueTrackId, clipped=True)
-      self.plot(SceneCrossingData.orthoPxToMeter, clippedDf, style="c:")
+      clippedDf = sceneCrossingData.getPedDfByUniqueTrackId(uniqueTrackId, clipped=True)
+      self.plot(sceneCrossingData.orthoPxToMeter, clippedDf, style="c:")
 
       if showLocal:
-        # localDf = SceneCrossingData.getDataInSceneCorrdinates()
-        self.plot(SceneCrossingData.orthoPxToMeter, clippedDf, xCol='sceneX', yCol='sceneY')
+        # localDf = sceneCrossingData.getPedDataInSceneCorrdinates()
+        self.plot(sceneCrossingData.orthoPxToMeter, clippedDf, xCol='sceneX', yCol='sceneY')
 
 
-      # break
+    # show others
+    if showOthers:
+      uniqueCrossingIds = sceneCrossingData.uniqueOtherIds()
+      for uniqueTrackId in uniqueCrossingIds:
+        if not onlyClipped:
+          otherDf = sceneCrossingData.getOtherDfByUniqueTrackId(uniqueTrackId)
+          self.plot(sceneCrossingData.orthoPxToMeter, otherDf, style="w")
+        
+        clippedDf = sceneCrossingData.getOtherDfByUniqueTrackId(uniqueTrackId, clipped=True)
+        self.plot(sceneCrossingData.orthoPxToMeter, clippedDf, style="y:")
+
+        if showLocal:
+          # localDf = sceneCrossingData.getPedDataInSceneCorrdinates()
+          self.plot(sceneCrossingData.orthoPxToMeter, clippedDf, style="w", xCol='sceneX', yCol='sceneY')
+
     
-    # plot box
-    ortho_px_to_meter = SceneCrossingData.orthoPxToMeter * self.scale_down_factor
-    (X, Y) = SceneCrossingData.polygon.exterior.xy
+    # plot scene bounding box
+    ortho_px_to_meter = sceneCrossingData.orthoPxToMeter * self.scale_down_factor
+    (X, Y) = sceneCrossingData.polygon.exterior.xy
     X = np.array(X)
     Y = np.array(Y)
     X /= ortho_px_to_meter
@@ -90,8 +105,8 @@ class TrajectoryVisualizer:
 
     # plot scene center
 
-    X = [SceneCrossingData.centerX / ortho_px_to_meter]
-    Y = [SceneCrossingData.centerY/ -ortho_px_to_meter]
+    X = [sceneCrossingData.centerX / ortho_px_to_meter]
+    Y = [sceneCrossingData.centerY/ -ortho_px_to_meter]
     self.ax.plot(X, Y, marker='o', markersize=10, markerfacecolor="yellow", markeredgecolor="black")
 
   

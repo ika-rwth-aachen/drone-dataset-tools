@@ -23,4 +23,5 @@ class PedScenarioBuilder:
         return self._nextId
     
 
-    def buildFromSceneData(self, sceneData)
+    def buildFromSceneCrossingData(self, locationData, sceneCrossingData):
+        
