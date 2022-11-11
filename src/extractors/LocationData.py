@@ -12,6 +12,15 @@ import functools
 class LocationData:
 
   def __init__(self, locationId, recordingIds, recordingDataList, useSceneConfigToExtract=False, precomputeSceneData=True):
+    """_summary_
+
+    Args:
+        locationId (_type_): _description_
+        recordingIds (_type_): _description_
+        recordingDataList (_type_): _description_
+        useSceneConfigToExtract (bool, optional): We extract data in two ways:. Defaults to False.
+        precomputeSceneData (bool, optional): extracts data. Defaults to True.
+    """
 
 
     self.locationId = locationId

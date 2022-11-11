@@ -74,7 +74,9 @@ recordingData.getCrossingDfByAnnotations()
 recordingData.getCrossingDfBySceneConfig(sceneConfigs, refresh=False, fps=2.5)
 ```
 # LocationData
-Aggregation over recording data of a location
+Aggregation over recording data of a location. Crossing data in a location can be extracted in two different ways:
+1. By annotation: if the dataset has crossing annotation for pedestrian, this approach is fast 
+2. By scene config: A scene config defines a bounding box, the pedestrian trajectories that have overlap with the bounding boxes are considerred crossing ones. This is prone to errors if a pedestrian does not cross the road (just walks along the road).
 
 **get all the unique crossing ids**
 ```
