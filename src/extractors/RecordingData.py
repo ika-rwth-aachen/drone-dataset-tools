@@ -1,13 +1,20 @@
 import pandas as pd
 from sortedcontainers import SortedList
 from tools.TrajectoryUtils import TrajectoryUtils
-from .SceneData import SceneData
+from .SceneCrossingData import SceneCrossingData
+from .TrackClass import TrackClass
 from loguru import logger
 from tqdm import tqdm
 
 class RecordingData:
 
-  def __init__(self, recordingId, recordingMeta, tracksMetaDf, tracksDf):
+  def __init__(
+      self, 
+      recordingId, 
+      recordingMeta, 
+      tracksMetaDf, 
+      tracksDf
+    ):
 
     self.recordingId = recordingId
     self.recordingMeta = recordingMeta
@@ -16,9 +23,26 @@ class RecordingData:
 
     self.__crossingDfByAnnotation = None
     self.__crossingDfBySceneConfig = None
-    self.__sceneData = {}
+    self.__SceneCrossingData = {}
 
+    self.__trackIdClassMap = {}
+    self.__extractTrackIdClasses()
 
+  @property
+  def locationId(self):
+    return self.recordingMeta["locationId"]
+
+  @property
+  def orthoPxToMeter(self):
+    return self.recordingMeta["orthoPxToMeter"]
+
+  def __extractTrackIdClasses(self):
+    for _, row in self.tracksMetaDf.iterrows():
+      self.__trackIdClassMap[row["trackId"]] = row["class"]
+    pass
+
+  def getClass(self, trackId):
+    return self.__trackIdClassMap[trackId]
 
   def getDfByTrackIds(self, trackIds):
       criterion = self.tracksDf['trackId'].map(lambda trackId: trackId in trackIds)
@@ -29,16 +53,16 @@ class RecordingData:
     return SortedList(self.tracksMetaDf[self.tracksMetaDf['class'] == cls]['trackId'].tolist())
 
   def getPedIds(self) -> SortedList:
-    return self.getIdsByClass('pedestrian')
+    return self.getIdsByClass(TrackClass.Pedestrian.value)
 
   def getCarIds(self) -> SortedList:
-    return self.getIdsByClass("car")
+    return self.getIdsByClass(TrackClass.Car.value)
   
   def getBicycleIds(self) -> SortedList:
-    return self.getIdsByClass("bicycle")
+    return self.getIdsByClass(TrackClass.Bicycle.value)
   
   def getLargeVehicleIds(self) -> SortedList:
-    return self.getIdsByClass("truck_bus")
+    return self.getIdsByClass(TrackClass.Truck_Bus.value)
   
   def getVehicleIds(self) -> SortedList:
     return self.getCarIds() + self.getLargeVehicleIds()
@@ -98,7 +122,7 @@ class RecordingData:
       return self.__crossingDfBySceneConfig
 
 
-  def getSceneData(self, sceneId, sceneConfig, refresh=False, fps=2.5):
+  def getSceneCrossingData(self, sceneId, sceneConfig, refresh=False, fps=2.5):
 
     """Do not use except for fast exploration. It's not used by the LocationData extractors. Always extracts by scene config
 
@@ -106,10 +130,10 @@ class RecordingData:
         _type_: _description_
     """
     
-    if sceneId not in self.__sceneData or refresh:
+    if sceneId not in self.__SceneCrossingData or refresh:
 
-      data = self.getCrossingDfForScene(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"], refresh=False, fps=2.5)
-      self.__sceneData[sceneId] = SceneData(
+      data = self.getCrossingDfForScene(sceneId, sceneConfig, refresh=False, fps=2.5)
+      self.__SceneCrossingData[sceneId] = SceneCrossingData(
                                             self.locationId, 
                                             self.orthoPxToMeter,
                                             sceneId, 
@@ -119,7 +143,7 @@ class RecordingData:
                                             data
                                           )
 
-    return self.__sceneData[sceneId]
+    return self.__SceneCrossingData[sceneId]
 
   def getCrossingDfForScene(self, sceneId, sceneConfig, refresh=False, fps=2.5) -> pd.DataFrame:
 
@@ -131,11 +155,15 @@ class RecordingData:
     pedIds = self.getPedIds()
     for pedId in tqdm(pedIds, desc="pedIds", leave=True, position=0):
       pedDf = self.getDfByTrackIds([pedId])
-      trajSpline = TrajectoryUtils.dfToSplines(pedDf, "xCenter", "yCenter", 1)
-      if TrajectoryUtils.doesIntersect(scenePolygon, trajSpline):
-        pedDf = pedDf.copy() # we can modify without concern now
-        pedDf["sceneId"] = sceneId
-        sceneDfs.append(pedDf)
+      # trajSpline = TrajectoryUtils.dfToSplines(pedDf, "xCenter", "yCenter", 1)
+      # if TrajectoryUtils.doesIntersect(scenePolygon, trajSpline):
+      #   pedDf = pedDf.copy() # we can modify without concern now
+      #   pedDf["sceneId"] = sceneId
+      #   pedDf["roadWidth"] = sceneConfig["roadWidth"]
+      #   sceneDfs.append(pedDf)
+      df  = TrajectoryUtils.getDfIfDfIntersect(sceneId=sceneId, sceneConfig=sceneConfig, scenePolygon=scenePolygon, df=pedDf)
+      if df is not None:
+        sceneDfs.append(df)
     
     if len(sceneDfs) > 0:
       return pd.concat(sceneDfs, ignore_index=True)

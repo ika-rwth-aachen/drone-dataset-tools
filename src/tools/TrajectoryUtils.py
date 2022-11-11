@@ -56,6 +56,16 @@ class TrajectoryUtils:
   def doesIntersect(polygon: box, spline: LineString) -> bool:
     return polygon.intersects(spline)
 
+  @staticmethod
+  def getDfIfDfIntersect(sceneId, sceneConfig, scenePolygon: box, df: pd.DataFrame, xCol="xCenter", yCol="yCenter") -> bool:
+    trajSpline = TrajectoryUtils.dfToSplines(df, xCol, yCol, 1)
+    if TrajectoryUtils.doesIntersect(scenePolygon, trajSpline):
+      df = df.copy() # we can modify without concern now
+      df["sceneId"] = sceneId
+      df["roadWidth"] = sceneConfig["roadWidth"]
+      return df
+    return None
+
   
   @staticmethod
   def clip(pedDf, xCol, yCol, frameCol, sceneConfig, boxWidth, boxHeight) -> pd.DataFrame:

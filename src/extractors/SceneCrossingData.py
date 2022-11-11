@@ -5,7 +5,9 @@ from tools.TrajectoryUtils import TrajectoryUtils
 from loguru import logger
 from tqdm import tqdm
 
-class SceneData:
+class SceneCrossingData:
+  """SceneCrossingData only has crossing trajectories.
+  """
   def __init__(
     self, 
     locationId, 

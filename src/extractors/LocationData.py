@@ -3,7 +3,7 @@ from sortedcontainers import SortedList
 from loguru import logger
 from tools.UnitUtils import UnitUtils
 from tools.TrajectoryUtils import TrajectoryUtils
-from .SceneData import SceneData
+from .SceneCrossingData import SceneCrossingData
 from tqdm import tqdm
 from dill import dump, load
 import os
@@ -11,7 +11,7 @@ import functools
 
 class LocationData:
 
-  def __init__(self, locationId, recordingIds, recordingDataList, useSceneConfigToExtract=False, precomputeSceneData=True):
+  def __init__(self, locationId, recordingIds, recordingDataList, useSceneConfigToExtract=False, precomputeSceneCrossingData=True):
     """_summary_
 
     Args:
@@ -19,7 +19,7 @@ class LocationData:
         recordingIds (_type_): _description_
         recordingDataList (_type_): _description_
         useSceneConfigToExtract (bool, optional): We extract data in two ways:. Defaults to False.
-        precomputeSceneData (bool, optional): extracts data. Defaults to True.
+        precomputeSceneCrossingData (bool, optional): extracts data. Defaults to True.
     """
 
 
@@ -39,12 +39,12 @@ class LocationData:
     self.__crossingDf = None
     self.__crossingIds = None
 
-    self.__sceneData = {}
+    self.__SceneCrossingData = {}
 
     self._mergedSceneDfs = {}
 
-    if precomputeSceneData:
-      self._precomputeSceneData()
+    if precomputeSceneCrossingData:
+      self._precomputeSceneCrossingData()
 
   
 
@@ -71,11 +71,11 @@ class LocationData:
     summary =  {
       "#original frameRate": self.frameRate,
       "#crossing trajectories": len(self.getUniqueCrossingIds()),
-      "#scene trajectories": functools.reduce(lambda acc, new: acc + new, [sceneData.clippedSize() for sceneData in self.__sceneData.values()])
+      "#scene trajectories": functools.reduce(lambda acc, new: acc + new, [SceneCrossingData.clippedSize() for SceneCrossingData in self.__SceneCrossingData.values()])
     }
 
-    for sceneId in self.__sceneData.keys():
-      summary[f"scene#{sceneId}"] = self.__sceneData[sceneId].clippedSize()
+    for sceneId in self.__SceneCrossingData.keys():
+      summary[f"scene#{sceneId}"] = self.__SceneCrossingData[sceneId].clippedSize()
 
     return summary
   
@@ -127,7 +127,7 @@ class LocationData:
   #endregion
 
   #region scene
-  def _precomputeSceneData(self):
+  def _precomputeSceneCrossingData(self):
     sceneConfigs = self.getSceneConfig()
     sceneIds = list(sceneConfigs.keys())
 
@@ -170,7 +170,7 @@ class LocationData:
     return pd.concat(sceneDfs, ignore_index=True)
 
   
-  def getSceneCrossingData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=2.5) -> SceneData:
+  def getSceneCrossingData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=2.5) -> SceneCrossingData:
     """_summary_
 
     Args:
@@ -181,15 +181,15 @@ class LocationData:
         fps (float, optional): frame rate conversion from 25. Defaults to 2.5.
 
     Returns:
-        SceneData: _description_
+        SceneCrossingData: _description_
     """
 
     sceneId = str(sceneId)
-    if sceneId not in self.__sceneData or refresh:
+    if sceneId not in self.__SceneCrossingData or refresh:
 
       data = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
       sceneConfig = self.getSceneConfig()[str(sceneId)]
-      self.__sceneData[sceneId] = SceneData(
+      self.__SceneCrossingData[sceneId] = SceneCrossingData(
                                             self.locationId, 
                                             self.orthoPxToMeter,
                                             sceneId, 
@@ -199,7 +199,7 @@ class LocationData:
                                             data
                                           )
 
-    return self.__sceneData[sceneId]
+    return self.__SceneCrossingData[sceneId]
 
   
   def mergeScenesByRoadWidth(self, refresh=False):
@@ -223,8 +223,8 @@ class LocationData:
     for roadWidth in tqdm(groups, desc="merging scenes"):
       groupDfs = []
       group = groups[roadWidth]
-      for sceneData in group:
-        sceneLocalDf = sceneData.getDataInSceneCorrdinates()
+      for SceneCrossingData in group:
+        sceneLocalDf = SceneCrossingData.getDataInSceneCorrdinates()
         groupDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId", "recordingId"]].copy())
       groupDf = pd.concat(groupDfs, ignore_index=True)
       groupDf["roadWidth"] = roadWidth
@@ -249,8 +249,8 @@ class LocationData:
     # 1. Get all clipped scene crossing data in their local coordinate system
     for sceneId  in sceneIds:
       sceneConfig = sceneConfigs[str(sceneId)]
-      sceneData = self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
-      sceneLocalDf = sceneData.getDataInSceneCorrdinates()
+      SceneCrossingData = self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
+      sceneLocalDf = SceneCrossingData.getDataInSceneCorrdinates()
       if len(sceneLocalDf) > 0:
         sceneDfs.append(sceneLocalDf[["frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId", "recordingId"]].copy())
 

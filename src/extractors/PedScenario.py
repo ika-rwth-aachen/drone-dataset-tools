@@ -33,7 +33,8 @@ class PedScenario:
         end: int,
         fps: float,
         tags: List[PedScenarioType],
-        data: pd.DataFrame
+        data: pd.DataFrame,
+        crossWalkLength: float
     ):
         self.scenarioId = scenarioId
         self.uid = uid
@@ -42,5 +43,6 @@ class PedScenario:
         self.fps = fps
         self.tags = tags
         self.data = data
+        self.crossWalkLength = crossWalkLength
     
     

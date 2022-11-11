@@ -1,6 +1,6 @@
 from extractors.loader import Loader
 from extractors.LocationData import LocationData
-from extractors.SceneData import SceneData
+from extractors.SceneCrossingData import SceneCrossingData
 from loguru import logger
 import matplotlib.pyplot as plt
 import os
@@ -59,29 +59,29 @@ class TrajectoryVisualizer:
       pedDf = locationData.getCrossingDfByUniqueTrackId(uniqueTrackId)
       self.plot(locationData.orthoPxToMeter, pedDf)
 
-  def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False, showLocal=False):
+  def showLocationSceneCrossingData(self, SceneCrossingData: SceneCrossingData, onlyClipped=False, showLocal=False):
 
-    self.initPlot(sceneData.data.recordingId[0], f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}")
+    self.initPlot(SceneCrossingData.data.recordingId[0], f"Trajectories for location{SceneCrossingData.locationId} and scene {SceneCrossingData.sceneId}")
 
-    uniqueCrossingIds = sceneData.uniquePedIds()
+    uniqueCrossingIds = SceneCrossingData.uniquePedIds()
     for uniqueTrackId in uniqueCrossingIds:
       if not onlyClipped:
-        pedDf = sceneData.getDfByUniqueTrackId(uniqueTrackId)
-        self.plot(sceneData.orthoPxToMeter, pedDf)
+        pedDf = SceneCrossingData.getDfByUniqueTrackId(uniqueTrackId)
+        self.plot(SceneCrossingData.orthoPxToMeter, pedDf)
       
-      clippedDf = sceneData.getDfByUniqueTrackId(uniqueTrackId, clipped=True)
-      self.plot(sceneData.orthoPxToMeter, clippedDf, style="c:")
+      clippedDf = SceneCrossingData.getDfByUniqueTrackId(uniqueTrackId, clipped=True)
+      self.plot(SceneCrossingData.orthoPxToMeter, clippedDf, style="c:")
 
       if showLocal:
-        # localDf = sceneData.getDataInSceneCorrdinates()
-        self.plot(sceneData.orthoPxToMeter, clippedDf, xCol='sceneX', yCol='sceneY')
+        # localDf = SceneCrossingData.getDataInSceneCorrdinates()
+        self.plot(SceneCrossingData.orthoPxToMeter, clippedDf, xCol='sceneX', yCol='sceneY')
 
 
       # break
     
     # plot box
-    ortho_px_to_meter = sceneData.orthoPxToMeter * self.scale_down_factor
-    (X, Y) = sceneData.polygon.exterior.xy
+    ortho_px_to_meter = SceneCrossingData.orthoPxToMeter * self.scale_down_factor
+    (X, Y) = SceneCrossingData.polygon.exterior.xy
     X = np.array(X)
     Y = np.array(Y)
     X /= ortho_px_to_meter
@@ -90,8 +90,8 @@ class TrajectoryVisualizer:
 
     # plot scene center
 
-    X = [sceneData.centerX / ortho_px_to_meter]
-    Y = [sceneData.centerY/ -ortho_px_to_meter]
+    X = [SceneCrossingData.centerX / ortho_px_to_meter]
+    Y = [SceneCrossingData.centerY/ -ortho_px_to_meter]
     self.ax.plot(X, Y, marker='o', markersize=10, markerfacecolor="yellow", markeredgecolor="black")
 
   
