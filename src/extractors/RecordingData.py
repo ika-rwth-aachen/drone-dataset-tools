@@ -1,6 +1,7 @@
 import pandas as pd
 from sortedcontainers import SortedList
 from tools.TrajectoryUtils import TrajectoryUtils
+from .SceneData import SceneData
 from loguru import logger
 from tqdm import tqdm
 
@@ -23,8 +24,40 @@ class RecordingData:
       criterion = self.tracksDf['trackId'].map(lambda trackId: trackId in trackIds)
       return self.tracksDf[criterion]
 
+  
+  def getIdsByClass(self, cls) -> SortedList:
+    return SortedList(self.tracksMetaDf[self.tracksMetaDf['class'] == cls]['trackId'].tolist())
+
   def getPedIds(self) -> SortedList:
-    return SortedList(self.tracksMetaDf[self.tracksMetaDf['class'] == 'pedestrian']['trackId'].tolist())
+    return self.getIdsByClass('pedestrian')
+
+  def getCarIds(self) -> SortedList:
+    return self.getIdsByClass("car")
+  
+  def getBicycleIds(self) -> SortedList:
+    return self.getIdsByClass("bicycle")
+  
+  def getLargeVehicleIds(self) -> SortedList:
+    return self.getIdsByClass("truck_bus")
+  
+  def getVehicleIds(self) -> SortedList:
+    return self.getCarIds() + self.getLargeVehicleIds()
+
+  def getDfByFrameSpan(self, start, end):
+    return self.tracksDf[(self.tracksDf["frame"] >= start) & (self.tracksDf["frame"] <= end)]
+  
+  def getDfById(self, id):
+    return self.tracksDf[self.tracksDf["trackId"] == id]
+
+  def getDfByPedFrameSpan(self, pedId):
+    """It returns all the rows that appears between the start and the end frame of the pedestrian. We probably should not use this as this does not reflect the crossing span.
+
+    Args:
+        pedId (_type_): _description_
+    """
+    # 1. get meta
+    pedMeta = self.tracksMetaDf[self.tracksMetaDf['trackId'] == pedId]
+    raise NotImplementedError("getDfByPedFrameSpan")
   
 
   def _getCrossingPedIdsByAnnotation(self) -> SortedList:
@@ -66,6 +99,12 @@ class RecordingData:
 
 
   def getSceneData(self, sceneId, sceneConfig, refresh=False, fps=2.5):
+
+    """Do not use except for fast exploration. It's not used by the LocationData extractors
+
+    Returns:
+        _type_: _description_
+    """
     
     if sceneId not in self.__sceneData or refresh:
 
@@ -75,8 +114,8 @@ class RecordingData:
                                             self.orthoPxToMeter,
                                             sceneId, 
                                             sceneConfig, 
-                                            boxWidth, 
-                                            boxHeight, 
+                                            sceneConfig["boxWidth"], 
+                                            sceneConfig["roadWidth"],
                                             data
                                           )
 
