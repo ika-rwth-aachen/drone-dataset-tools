@@ -172,6 +172,7 @@ class LocationData:
     sceneIds = list(sceneConfigs.keys())
 
     for sceneId in sceneIds:
+      logger.info(f"Precomputing sceneCrossingData for {sceneId}")
       sceneConfig = sceneConfigs[sceneId]
       self.getSceneCrossingData(sceneId, sceneConfig["boxWidth"], sceneConfig["roadWidth"])
 
@@ -235,8 +236,8 @@ class LocationData:
     sceneId = str(sceneId)
     if sceneId not in self.__SceneCrossingData or refresh:
 
-      pedData = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
       otherData = self.getSceneOtherDf(sceneId)
+      pedData = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
       sceneConfig = self.getSceneConfig()[str(sceneId)]
       self.__SceneCrossingData[sceneId] = SceneCrossingData(
                                             self.locationId, 

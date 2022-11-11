@@ -206,7 +206,7 @@ class RecordingData:
     scenePolygon = TrajectoryUtils.scenePolygon(sceneConfig, sceneConfig["boxWidth"], sceneConfig["roadWidth"] / 2)
     # create splines
     pedIds = self.getPedIds()
-    for pedId in tqdm(pedIds, desc="pedIds", leave=True, position=0):
+    for pedId in tqdm(pedIds, desc=f"recording-{self.recordingId}-scene{sceneId}-ped", leave=True, position=0):
       pedDf = self.getDfByTrackIds([pedId])
       df  = TrajectoryUtils.getDfIfDfIntersect(sceneId=sceneId, sceneConfig=sceneConfig, scenePolygon=scenePolygon, df=pedDf)
       if df is not None:
@@ -250,7 +250,7 @@ class RecordingData:
     scenePolygon = TrajectoryUtils.scenePolygon(sceneConfig, sceneConfig["boxWidth"], sceneConfig["roadWidth"] / 2)
     # create splines
     otherIds = self.getIdsByClass(otherClass.value)
-    for otherId in tqdm(otherIds, desc=f"{otherClass.value}-Ids", leave=True, position=0):
+    for otherId in tqdm(otherIds, desc=f"recording-{self.recordingId}-scene{sceneId}-{otherClass.value}-Ids", leave=True, position=0):
       inputDf = self.getDfByTrackIds([otherId])
       df  = TrajectoryUtils.getDfIfDfIntersect(sceneId=sceneId, sceneConfig=sceneConfig, scenePolygon=scenePolygon, df=inputDf)
       if df is not None:
