@@ -100,7 +100,7 @@ class RecordingData:
 
   def getSceneData(self, sceneId, sceneConfig, refresh=False, fps=2.5):
 
-    """Do not use except for fast exploration. It's not used by the LocationData extractors
+    """Do not use except for fast exploration. It's not used by the LocationData extractors. Always extracts by scene config
 
     Returns:
         _type_: _description_
