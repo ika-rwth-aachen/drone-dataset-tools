@@ -171,8 +171,8 @@ class LocationData:
                         f"{recordingData.recordingId} has exception: {e}")
                     # raise e
 
-                logger.warning("Breaking after processing the first recording")
-                break
+                # logger.warning("Breaking after processing the first recording")
+                # break
 
             self._crossingDf = pd.concat(crossingDfs, ignore_index=True)
 
@@ -203,8 +203,8 @@ class LocationData:
                         f"{recordingData.recordingId} has exception: {e}")
                     # raise e
 
-                logger.warning("Breaking after processing the first recording")
-                break
+                # logger.warning("Breaking after processing the first recording")
+                # break
 
             self._otherDf = pd.concat(otherDfs, ignore_index=True)
 
