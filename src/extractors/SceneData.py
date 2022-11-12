@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 OTHER_CLIP_LENGTH = 50
 
-class SceneCrossingData:
-  """SceneCrossingData only has crossing trajectories.
+class SceneData:
+  """SceneData only has crossing trajectories.
   """
   def __init__(
     self, 
@@ -19,7 +19,8 @@ class SceneCrossingData:
     boxWidth, 
     boxHeight, 
     pedData: pd.DataFrame,
-    otherData: pd.DataFrame
+    otherData: pd.DataFrame,
+    backgroundImagePath = None
     ):
     self.locationId = locationId
     self.orthoPxToMeter = orthoPxToMeter # for visualization
@@ -28,6 +29,7 @@ class SceneCrossingData:
     self.centerX = sceneConfig["centerX"]
     self.centerY = sceneConfig["centerY"]
     self.angle = sceneConfig["angle"]
+    self.backgroundImagePath = backgroundImagePath
 
     self.boxWidth = boxWidth
     self.boxHeight = boxHeight

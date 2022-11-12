@@ -81,9 +81,11 @@ class Loader:
         tracksMetaDf = pd.read_csv(tMetaFile)
         tracksDf = pd.read_csv(tracksFile)
 
-        self.addUniqueTrackIds(tracksDf)      
+        self.addUniqueTrackIds(tracksDf)    
+        backgroundImagePath = self.getBackgroundImagePath(recordingId)
 
-        return RecordingData(recordingId, recordingMeta, tracksMetaDf, tracksDf)
+
+        return RecordingData(recordingId, recordingMeta, tracksMetaDf, tracksDf, backgroundImagePath)
 
         # return tracksDf, tracksMetaDf, recordingMeta
 
@@ -140,7 +142,13 @@ class Loader:
         logging.info(f"recordingIds: {recordingIds}")
         recordingDataList = [self.getRecordingData(rId) for rId in recordingIds]
         self.validateLocationRecordingMeta()
-        return LocationData(locationId, recordingIds, recordingDataList, useSceneConfigToExtract)
+        return LocationData(
+            locationId = locationId, 
+            recordingIds = recordingIds, 
+            recordingDataList = recordingDataList, 
+            useSceneConfigToExtract = useSceneConfigToExtract,
+            backgroundImagePath = self.getBackgroundImagePath(recordingIds[0])
+        )
 
     
 

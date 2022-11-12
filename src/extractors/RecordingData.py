@@ -1,7 +1,7 @@
 import pandas as pd
 from sortedcontainers import SortedList
 from tools.TrajectoryUtils import TrajectoryUtils
-from .SceneCrossingData import SceneCrossingData
+from .SceneData import SceneData
 from .TrackClass import TrackClass
 from loguru import logger
 from tqdm import tqdm
@@ -13,21 +13,23 @@ class RecordingData:
       recordingId, 
       recordingMeta, 
       tracksMetaDf, 
-      tracksDf
+      tracksDf,
+      backgroundImagePath = None
     ):
 
     self.recordingId = recordingId
     self.recordingMeta = recordingMeta
     self.tracksMetaDf = tracksMetaDf
     self.tracksDf = tracksDf
+    self.backgroundImagePath = backgroundImagePath
 
-    self.__crossingDfByAnnotation = None
-    self.__crossingDfBySceneConfig = None
-    self.__otherDfBySceneConfig = None
-    self.__SceneCrossingData = {}
+    self._crossingDfByAnnotation = None
+    self._crossingDfBySceneConfig = None
+    self._otherDfBySceneConfig = None
+    self._sceneData = {}
 
-    self.__trackIdClassMap = {}
-    self.__extractTrackIdClasses()
+    self._trackIdClassMap = {}
+    self._extractTrackIdClasses()
 
   @property
   def locationId(self):
@@ -37,13 +39,13 @@ class RecordingData:
   def orthoPxToMeter(self):
     return self.recordingMeta["orthoPxToMeter"]
 
-  def __extractTrackIdClasses(self):
+  def _extractTrackIdClasses(self):
     for _, row in self.tracksMetaDf.iterrows():
-      self.__trackIdClassMap[row["trackId"]] = row["class"]
+      self._trackIdClassMap[row["trackId"]] = row["class"]
     pass
 
   def getClass(self, trackId):
-    return self.__trackIdClassMap[trackId]
+    return self._trackIdClassMap[trackId]
 
   def getDfByTrackIds(self, trackIds):
       criterion = self.tracksDf['trackId'].map(lambda trackId: trackId in trackIds)
@@ -92,9 +94,9 @@ class RecordingData:
     return SortedList(self.tracksMetaDf[(self.tracksMetaDf['class'] == 'pedestrian') & (self.tracksMetaDf['crossing'] == 'yes') ]['trackId'].tolist())
 
   def getCrossingDfByAnnotations(self, sceneConfigs):
-    if self.__crossingDfByAnnotation is None:
+    if self._crossingDfByAnnotation is None:
       crossingIds = self._getCrossingPedIdsByAnnotation()
-      self.__crossingDfByAnnotation = self.getDfByTrackIds(crossingIds)
+      self._crossingDfByAnnotation = self.getDfByTrackIds(crossingIds)
 
       
       # sceneIds = list(sceneConfigs.keys())
@@ -108,19 +110,19 @@ class RecordingData:
       #     sceneDfs.append(df)
       
       # if len(sceneDfs) > 0:
-      #   self.__crossingDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
+      #   self._crossingDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
       # else:
       #   logger.warning(f"No crossing data found for recording {self.recordingId}")
-      #   self.__crossingDfBySceneConfig = pd.DataFrame()
+      #   self._crossingDfBySceneConfig = pd.DataFrame()
 
     raise Exception("getCrossingDfByAnnotations does not have scene annotation")
-    return self.__crossingDfByAnnotation
+    return self._crossingDfByAnnotation
 
 
   def getCrossingDfBySceneConfig(self, sceneConfigs, refresh=False, fps=2.5):
       logger.debug(f"getCrossingDfBySceneConfig from recording {self.recordingId}")
     
-      if self.__crossingDfBySceneConfig is None:
+      if self._crossingDfBySceneConfig is None:
         sceneIds = list(sceneConfigs.keys())
         sceneDfs = []
         # 1. Get all clipped scene crossing data in their local coordinate system
@@ -132,17 +134,17 @@ class RecordingData:
             sceneDfs.append(df)
         
         if len(sceneDfs) > 0:
-          self.__crossingDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
+          self._crossingDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
         else:
           logger.warning(f"No crossing data found for recording {self.recordingId}")
-          self.__crossingDfBySceneConfig = pd.DataFrame()
+          self._crossingDfBySceneConfig = pd.DataFrame()
 
-      return self.__crossingDfBySceneConfig
+      return self._crossingDfBySceneConfig
 
   def getOtherDfBySceneConfig(self, sceneConfigs, refresh=False, fps=2.5):
       logger.debug(f"getOtherDfBySceneConfig from recording {self.recordingId}")
     
-      if self.__otherDfBySceneConfig is None:
+      if self._otherDfBySceneConfig is None:
         sceneIds = list(sceneConfigs.keys())
         sceneDfs = []
         # 1. Get all clipped scene crossing data in their local coordinate system
@@ -154,15 +156,15 @@ class RecordingData:
             sceneDfs.append(df)
         
         if len(sceneDfs) > 0:
-          self.__otherDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
+          self._otherDfBySceneConfig = pd.concat(sceneDfs, ignore_index=True)
         else:
           logger.warning(f"No crossing data found for recording {self.recordingId}")
-          self.__otherDfBySceneConfig = pd.DataFrame()
+          self._otherDfBySceneConfig = pd.DataFrame()
 
-      return self.__otherDfBySceneConfig
+      return self._otherDfBySceneConfig
 
 
-  def getSceneCrossingData(self, sceneId, sceneConfig, refresh=False, fps=2.5):
+  def getSceneData(self, sceneId, sceneConfig, refresh=False, fps=2.5):
 
     """Do not use except for fast exploration. It's not used by the LocationData extractors. Always extracts by scene config
 
@@ -170,11 +172,11 @@ class RecordingData:
         _type_: _description_
     """
     
-    if sceneId not in self.__SceneCrossingData or refresh:
+    if sceneId not in self._sceneData or refresh:
 
       pedData = self.getCrossingDfForScene(sceneId, sceneConfig, refresh=False, fps=2.5)
       otherData = self.getOtherDfForScene(sceneId, sceneConfig, refresh=False, fps=2.5)
-      self.__SceneCrossingData[sceneId] = SceneCrossingData(
+      self._sceneData[sceneId] = SceneData(
                                             self.locationId, 
                                             self.orthoPxToMeter,
                                             sceneId, 
@@ -182,10 +184,11 @@ class RecordingData:
                                             sceneConfig["boxWidth"], 
                                             sceneConfig["roadWidth"],
                                             pedData=pedData,
-                                            otherData=otherData
+                                            otherData=otherData,
+                                            backgroundImagePath=self.backgroundImagePath
                                           )
 
-    return self.__SceneCrossingData[sceneId]
+    return self._sceneData[sceneId]
 
   def getCrossingDfForScene(self, sceneId, sceneConfig, refresh=False, fps=2.5) -> pd.DataFrame:
     """Gets the pedestrian trajectories that crosses the scene

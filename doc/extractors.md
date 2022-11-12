@@ -94,21 +94,21 @@ crossingDf = loc2data.getCrossingDf()
 
 **Processed data in files**
 ```
-loc2data.saveCrossingDf("../data") # only crossing dataframe. 
+loc2data.saveCrossingDf("../data") # only crossing dataframes. 
 loc2data.save("../data") # whole thing as a dill object. 
-loc2dataFromFile = LocationData.load("../data/location-2")
+loc2dataFromFile = LocationData.load("../data/location-2", "dill file name")
 ```
 
-# SceneCrossingData
+# SceneData
 
 This class holds the data of a scene. The purpose of this class is to crop trajectories to the scene area and transfrom them to scene coordinate system. **getClippedPedDfs** method returns the clipped trajectories. Here goes the important columns:
-- sceneId: a numeric id represent a scene location. It will be the same value for a SceneCrossingData object
+- sceneId: a numeric id represent a scene location. It will be the same value for a SceneData object
 - sceneX, sceneY: xCenter, yCenter transformed into scene origin.
 
 **Extracting ccene data from location data**
 ```
-  SceneCrossingData = loc2data.getSceneCrossingData(1, 10, 5, refresh=False)
-  visualizer.showLocationSceneCrossingData(SceneCrossingData, showLocal=True)
+  SceneData = loc2data.getSceneData(1, 10, 5, refresh=False)
+  visualizer.showLocationSceneData(SceneData, showLocal=True)
 ```
 
 **Get clipped trajectories**
