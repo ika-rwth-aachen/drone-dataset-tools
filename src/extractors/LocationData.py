@@ -6,6 +6,7 @@ from tools.TrajectoryUtils import TrajectoryUtils
 from .SceneCrossingData import SceneCrossingData
 from tqdm import tqdm
 from dill import dump, load
+from datetime import datetime
 import os
 import functools
 
@@ -343,21 +344,42 @@ class LocationData:
   def saveCrossingDf(self, outputDir):
 
     locDir = self.madeLocationDir(outputDir)
-    fpath = os.path.join(locDir, "crossing.csv")
+    date_time = datetime.now().strftime("%Y-%m-%d")
+
+    fpath = os.path.join(locDir, f"{date_time}-crossing.csv")
+    if os.path.exists(fpath):
+      os.remove(fpath)
     crossingDf = self.getCrossingDf()
     crossingDf.to_csv(fpath)
+
+    
+    fpath = os.path.join(locDir, f"{date_time}-other.csv")
+    if os.path.exists(fpath):
+      os.remove(fpath)
+    otherDf = self.getOtherDf()
+    otherDf.to_csv(fpath)
+
+    pass
 
   
   def save(self, outputDir):
 
     locDir = self.madeLocationDir(outputDir)
-    fpath = os.path.join(locDir, "all.dill")
+    date_time = datetime.now().strftime("%Y-%m-%d")
+
+    fpath = os.path.join(locDir, f"{date_time}-all.dill")
+    if os.path.exists(fpath):
+      os.remove(fpath)
     with open(fpath, "wb") as fp:
       dump(self, fp)
       logger.info(f"saved to {fpath}")
     
   @staticmethod
-  def load(locDir):
+  def load(locDir, fname=None):
+
+    if fname is None:
+      fname = "all.dill"
+      
     fpath = os.path.join(locDir, "all.dill")
     logger.info(f"reading from {fpath}")
     with open(fpath, "rb") as fp:
