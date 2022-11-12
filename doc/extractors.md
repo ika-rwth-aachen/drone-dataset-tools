@@ -112,8 +112,12 @@ This class holds the data of a scene. The purpose of this class is to crop traje
 ```
 
 **Get clipped trajectories**
+Vehicle trajectories are clipped by about 50 meter + bounding box width. Can be changed by setting **OTHER_CLIP_LENGTH** constant in the SceneData class
 ```
-sceneLocalDf = scene6Data.getClippedPedDfs()
+sceneLocalDf = scene6Data.getClippedPedDfs() # pedestrians crossing
+sceneLocalDf.head()
+
+sceneLocalDf = scene6Data.getClippedOtherDfs() # others (vehicles, bicycles, trucks)
 sceneLocalDf.head()
 ```
 

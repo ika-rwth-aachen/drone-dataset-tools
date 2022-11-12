@@ -38,5 +38,5 @@ import numpy as np
 visualizer = TrajectoryVisualizer(None)
 
 sceneData = loc2dataFromFile.getSceneData(10, 10, 5, refresh=False)
-visualizer.showLocationSceneData(sceneData)
+visualizer.showLocationSceneData(sceneData, onlyClipped=True, showOthers=True)
 ```
