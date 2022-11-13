@@ -55,7 +55,9 @@ class Loader:
         #     if rMeta["locationId"] == locationId:
         #         ids.append(rMeta["recordingId"])
         # return ids
-        return self.locationToRecordingIds[locationId]
+        recordingIds = self.locationToRecordingIds[locationId]
+        recordingIds = recordingIds[:1]
+        return recordingIds
     
 
     def getBackgroundImagePath(self, recordingId):
@@ -142,6 +144,7 @@ class Loader:
         logging.info(f"recordingIds: {recordingIds}")
         recordingDataList = [self.getRecordingData(rId) for rId in recordingIds]
         self.validateLocationRecordingMeta()
+
         return LocationData(
             locationId = locationId, 
             recordingIds = recordingIds, 

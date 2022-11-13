@@ -227,7 +227,7 @@ class LocationData:
             )
 
     def getSceneConfig(self):
-        return UnitUtils.getLocationSceneConfigs(self.locationId)
+        return UnitUtils.getLocationSceneConfigs("ind", self.locationId)
 
     def getSceneCrossingDf(self, sceneId, boxWidth, boxHeight) -> pd.DataFrame:
 

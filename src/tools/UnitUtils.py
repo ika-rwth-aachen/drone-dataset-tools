@@ -25,7 +25,9 @@ class UnitUtils:
         if not dataset_params_path.exists():
             logger.error(
                 "Could not find dataset visualization parameters in {}", dataset_params_path)
-            sys.exit(-1)
+            raise Exception(
+                "Could not find dataset visualization parameters in {}", dataset_params_path)
+            # sys.exit(-1)
 
         with open(dataset_params_path) as f:
             dataset_params = json.load(f)
@@ -33,7 +35,9 @@ class UnitUtils:
         if dataset not in dataset_params["datasets"]:
             logger.error("Visualization parameters for dataset {} not found in {}. Please make sure, that the needed "
                          "parameters are given", dataset, dataset_params_path)
-            sys.exit(-1)
+            raise Exception(
+                "Could not find dataset visualization parameters in {}", dataset_params_path)
+            # sys.exit(-1)
 
         return dataset_params["datasets"][dataset]
 
@@ -43,8 +47,9 @@ class UnitUtils:
         scenePath = Path("../data/scenes") / f"{dataset}.json"
 
         if not scenePath.exists():
-            logger.error("Could not scenePath in {}", scenePath)
-            sys.exit(-1)
+            logger.error("scenePath does not exist - {}", scenePath)
+            raise Exception("scenePath does not exist - {}", scenePath)
+            # sys.exit(-1)
 
         with open(scenePath) as f:
             sceneConfig = json.load(f)
