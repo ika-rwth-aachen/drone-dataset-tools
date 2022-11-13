@@ -419,6 +419,22 @@ class LocationData:
             dump(self, fp)
             logger.info(f"saved to {fpath}")
 
+    def saveSceneDataOnly(self, outputDir):
+
+        locDir = self.madeLocationDir(outputDir)
+        date_time = datetime.now().strftime("%Y-%m-%d")
+
+        for sceneId in self._sceneData:
+            fname = f"{date_time}-fps-{FPS}-scene-{sceneId}.dll"
+            fpath = os.path.join(locDir, fname)
+            if os.path.exists(fpath):
+                os.remove(fpath)
+            with open(fpath, "wb") as fp:
+                dump(self._sceneData[sceneId], fp)
+                logger.info(f"saved to {fpath}")
+
+
+
     @staticmethod
     def load(locDir, fname=None):
 

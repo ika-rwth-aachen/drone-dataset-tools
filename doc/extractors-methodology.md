@@ -12,3 +12,16 @@ Overall steps:
 For location 2, here goes the bounding boxes. The data is available [here](../data/scenes/ind.json).
 
 <img src="./images/location-scene-annotation.PNG" width="600">
+
+
+# Steps
+
+```mermaid
+flowchart TD
+    LocRec[Get recordings for a location] --> Down[Downsample recording data from 25.0 fps to 2.5 fps]
+    Down -- List of RecordingData --> Scene[Get Scene trajectories for each RecordingData]
+    Scene --> div[Divide trajectories between pedestrian and non-pedestrian data]
+    div --> comb[Combine data by scene]
+    comb --> Export
+
+```
