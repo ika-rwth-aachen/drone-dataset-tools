@@ -17,7 +17,7 @@ You will find several data files prefixed with the date.
 
 ## Step 2: Load preprocessed data from disk 
 
-Sample notebook: 
+**Notebook with updated examples**: 
 [Reading from preprocessed data](../src/notebooks/read-from-preprocessed.ipynb)
 
 

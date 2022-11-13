@@ -93,6 +93,8 @@ crossingDf = loc2data.getCrossingDf()
 ```
 
 **Processed data in files**
+We have different types of preprocessed data and formats. For all the examples please go through the notebook:
+[Reading from preprocessed data](../src/notebooks/read-from-preprocessed.ipynb)
 ```
 loc2data.saveCrossingDf("../data") # only crossing dataframes. 
 loc2data.save("../data") # whole thing as a dill object. 
