@@ -4,6 +4,7 @@ from tools.TrajectoryUtils import TrajectoryUtils
 from .SceneData import SceneData
 from .TrackClass import TrackClass
 from loguru import logger
+import logging
 from tqdm import tqdm
 from .config import *
 
@@ -42,7 +43,7 @@ class RecordingData:
         return self.recordingMeta["orthoPxToMeter"]
 
     def _downSampleByTrackLifeTime(self, fromFPS=ORIGINAL_FPS, toFPS=FPS):
-        logger.warning(f"Downsampling recording {self.recordingId} from {fromFPS} to {toFPS}")
+        logging.info(f"Downsampling recording {self.recordingId} from {fromFPS} to {toFPS}")
         self.tracksDf = TrajectoryUtils.downSampleByTrackLifeTime(self.tracksDf, fromFPS, toFPS)
 
     def _extractTrackIdClasses(self):

@@ -1,6 +1,7 @@
 from shapely.geometry import LineString, box, Point
 from shapely.affinity import rotate, translate, affine_transform
 
+from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from math import sqrt, inf, cos, sin, radians
@@ -231,7 +232,7 @@ class TrajectoryUtils:
 
         downTraj = []
         count = 0
-        for _, row in traj.iterrows():
+        for _, row in  tqdm(traj.iterrows(), desc=f"downsampling", total=len(traj)):
             if count % keepInterval == 0:
             # if row["trackLifetime"] % keepInterval == 0: # a little error will break it
                 downTraj.append(row)
@@ -249,7 +250,8 @@ class TrajectoryUtils:
         keepInterval = fromFPS // toFPS
 
         downTraj = []
-        for _, row in traj.iterrows():
+        for _, row in  tqdm(traj.iterrows(), desc=f"downsampling", total=len(traj)):
+        # for _, row in traj.iterrows():
             if row["trackLifetime"] % keepInterval == 0: # a little error will break it
                 downTraj.append(row)
         
