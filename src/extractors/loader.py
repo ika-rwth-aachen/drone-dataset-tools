@@ -56,7 +56,7 @@ class Loader:
         #         ids.append(rMeta["recordingId"])
         # return ids
         recordingIds = self.locationToRecordingIds[locationId]
-        recordingIds = recordingIds[:1]
+        # recordingIds = recordingIds[:1]
         return recordingIds
     
 
