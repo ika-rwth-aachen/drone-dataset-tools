@@ -27,8 +27,9 @@ class PedScenario:
 
     def __init__(
         self,
+        sceneId:int,
         scenarioId:int,
-        uid: int,
+        pedId: int,
         start: int,
         end: int,
         fps: float,
@@ -36,8 +37,9 @@ class PedScenario:
         data: pd.DataFrame,
         crossWalkLength: float
     ):
+        self.sceneId = sceneId
         self.scenarioId = scenarioId
-        self.uid = uid
+        self.pedId = pedId
         self.start = start
         self.end = end
         self.fps = fps

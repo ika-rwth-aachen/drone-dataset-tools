@@ -71,7 +71,7 @@ Currently we can extract pedestrian frames (only peds, no other traffic particip
 2. By scene config. We picked some scenes for a location. Using geometric intersection, we extract crossing trajectories. But this cannot filter out trajectories which were possibly wrongly classified as pedestrians. Also, it cannot capture the trajectories that leaves the bounding box of the scene very early. The scene configs can be found [here](../data/scenes/ind.json).
 ```
 recordingData.getCrossingDfByAnnotations() 
-recordingData.getCrossingDfBySceneConfig(sceneConfigs, refresh=False, fps=2.5)
+recordingData.getCrossingDfBySceneConfig(sceneConfigs, refresh=False, fps=FPS)
 ```
 # LocationData
 Aggregation over recording data of a location. Crossing data in a location can be extracted in two different ways:

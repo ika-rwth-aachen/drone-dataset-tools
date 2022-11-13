@@ -4,6 +4,7 @@ from shapely.geometry import Point
 from tools.TrajectoryUtils import TrajectoryUtils
 from loguru import logger
 from tqdm import tqdm
+from .config import *
 
 OTHER_CLIP_LENGTH = 50
 

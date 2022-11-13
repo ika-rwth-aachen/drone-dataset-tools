@@ -9,6 +9,7 @@ from dill import dump, load
 from datetime import datetime
 import os
 import functools
+from .config import *
 
 
 class LocationData:
@@ -226,8 +227,7 @@ class LocationData:
             )
 
     def getSceneConfig(self):
-        allLocationSceneConfig = UnitUtils.loadSceneConfiguration()
-        return allLocationSceneConfig[str(self.locationId)]
+        return UnitUtils.getLocationSceneConfigs(self.locationId)
 
     def getSceneCrossingDf(self, sceneId, boxWidth, boxHeight) -> pd.DataFrame:
 
@@ -265,7 +265,7 @@ class LocationData:
         otherDf = self.getOtherDf()
         return otherDf[otherDf["sceneId"] == sceneId].copy().reset_index()
 
-    def getSceneData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=2.5) -> SceneData:
+    def getSceneData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=FPS) -> SceneData:
         """_summary_
 
         Args:
@@ -326,7 +326,7 @@ class LocationData:
                 groupDfs.append(sceneLocalDf[[
                                 "frame", "uniqueTrackId", "sceneX", "sceneY", "sceneId", "recordingId"]].copy())
             groupDf = pd.concat(groupDfs, ignore_index=True)
-            groupDf["roadWidth"] = roadWidth
+            # groupDf["roadWidth"] = roadWidth # already done when extracting by scene config, or bulding scene data
             self._mergedSceneDfs[roadWidth] = groupDf
 
         return self._mergedSceneDfs
@@ -393,13 +393,13 @@ class LocationData:
         locDir = self.madeLocationDir(outputDir)
         date_time = datetime.now().strftime("%Y-%m-%d")
 
-        fpath = os.path.join(locDir, f"{date_time}-crossing.csv")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-crossing.csv")
         if os.path.exists(fpath):
             os.remove(fpath)
         crossingDf = self.getCrossingDf()
         crossingDf.to_csv(fpath)
 
-        fpath = os.path.join(locDir, f"{date_time}-other.csv")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-other.csv")
         if os.path.exists(fpath):
             os.remove(fpath)
         otherDf = self.getOtherDf()
@@ -412,7 +412,7 @@ class LocationData:
         locDir = self.madeLocationDir(outputDir)
         date_time = datetime.now().strftime("%Y-%m-%d")
 
-        fpath = os.path.join(locDir, f"{date_time}-all.dill")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-all.dill")
         if os.path.exists(fpath):
             os.remove(fpath)
         with open(fpath, "wb") as fp:
