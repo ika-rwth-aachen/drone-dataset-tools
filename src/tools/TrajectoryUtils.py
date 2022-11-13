@@ -228,4 +228,32 @@ class TrajectoryUtils:
             return traj
         
         keepInterval = fromFPS // toFPS
+
+        downTraj = []
+        count = 0
+        for _, row in traj.iterrows():
+            if count % keepInterval == 0:
+            # if row["trackLifetime"] % keepInterval == 0: # a little error will break it
+                downTraj.append(row)
+            count += 1
+        
+        return pd.DataFrame(downTraj).convert_dtypes()
+
+    @staticmethod
+    def downSampleByTrackLifeTime(traj: pd.DataFrame, fromFPS:float, toFPS: float):
+        if fromFPS < toFPS:
+            raise Exception(f"downSample: Up sampling not supported for frames")
+        if fromFPS == toFPS:
+            return traj
+        
+        keepInterval = fromFPS // toFPS
+
+        downTraj = []
+        for _, row in traj.iterrows():
+            if row["trackLifetime"] % keepInterval == 0: # a little error will break it
+                downTraj.append(row)
+        
+        return pd.DataFrame(downTraj).convert_dtypes()
+
+
         

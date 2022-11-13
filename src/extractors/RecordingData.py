@@ -7,7 +7,6 @@ from loguru import logger
 from tqdm import tqdm
 from .config import *
 
-
 class RecordingData:
 
     def __init__(
@@ -32,6 +31,7 @@ class RecordingData:
 
         self._trackIdClassMap = {}
         self._extractTrackIdClasses()
+        self._downSampleByTrackLifeTime()
 
     @property
     def locationId(self):
@@ -40,6 +40,10 @@ class RecordingData:
     @property
     def orthoPxToMeter(self):
         return self.recordingMeta["orthoPxToMeter"]
+
+    def _downSampleByTrackLifeTime(self, fromFPS=ORIGINAL_FPS, toFPS=FPS):
+        logger.warning(f"Downsampling recording {self.recordingId} from {fromFPS} to {toFPS}")
+        self.tracksDf = TrajectoryUtils.downSampleByTrackLifeTime(self.tracksDf, fromFPS, toFPS)
 
     def _extractTrackIdClasses(self):
         for _, row in self.tracksMetaDf.iterrows():
@@ -226,6 +230,7 @@ class RecordingData:
             df = TrajectoryUtils.getDfIfDfIntersect(
                 sceneId=sceneId, sceneConfig=sceneConfig, scenePolygon=scenePolygon, df=pedDf)
             if df is not None:
+                # df = TrajectoryUtils.downSample(df, ORIGINAL_FPS, fps)
                 df["sceneId"] = sceneId
                 sceneDfs.append(df)
 
@@ -271,6 +276,7 @@ class RecordingData:
             df = TrajectoryUtils.getDfIfDfIntersect(
                 sceneId=sceneId, sceneConfig=sceneConfig, scenePolygon=scenePolygon, df=inputDf)
             if df is not None:
+                # df = TrajectoryUtils.downSample(df, ORIGINAL_FPS, fps)
                 df["sceneId"] = sceneId
                 df["class"] = otherClass.value
                 otherDfs.append(df)

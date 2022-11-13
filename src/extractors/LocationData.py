@@ -397,13 +397,13 @@ class LocationData:
         if os.path.exists(fpath):
             os.remove(fpath)
         crossingDf = self.getCrossingDf()
-        crossingDf.to_csv(fpath)
+        crossingDf.to_csv(fpath, index=False)
 
         fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-other.csv")
         if os.path.exists(fpath):
             os.remove(fpath)
         otherDf = self.getOtherDf()
-        otherDf.to_csv(fpath)
+        otherDf.to_csv(fpath, index=False)
 
         pass
 
