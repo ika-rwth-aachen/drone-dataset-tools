@@ -30,6 +30,7 @@ class PedScenario:
         sceneId:int,
         scenarioId:int,
         pedId: int,
+        recordingId: int,
         start: int,
         end: int,
         fps: float,
@@ -40,6 +41,7 @@ class PedScenario:
         self.sceneId = sceneId
         self.scenarioId = scenarioId
         self.pedId = pedId
+        self.recordingId = recordingId
         self.start = start
         self.end = end
         self.fps = fps
