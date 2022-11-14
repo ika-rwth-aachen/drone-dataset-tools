@@ -75,6 +75,8 @@ class SceneData:
         return clippedDf.uniqueTrackId.unique()
       return []
 
+  def getClippedPedDfByUniqueTrackId(self, uniqueTrackId):
+    return self.getPedDfByUniqueTrackId(uniqueTrackId, True)
 
   def getPedDfByUniqueTrackId(self, uniqueTrackId, clipped=False):
     return self.getPedDfByUniqueTrackIds([uniqueTrackId], clipped=clipped)

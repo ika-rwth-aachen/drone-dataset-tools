@@ -51,6 +51,17 @@ class PedScenarioBuilder:
             )
             self.buildFromSceneData(sceneData)
 
+
+    def printSceneStats(self, sceneData: SceneData):
+        # print all ped start end
+        # print all other start end
+        
+        primaryPedIds = sceneData.uniqueClippedPedIds()
+        for primaryPedId in primaryPedIds:
+            primaryDf = sceneData.getClippedPedDfByUniqueTrackId(primaryPedId)
+            recordingId, start, end, roadWidth = self.getRecordStartEndWidth(primaryDf)
+            print("recordingId, primaryPedId,  start, end, roadWidth ", recordingId, primaryPedId, start, end, roadWidth )
+
     def buildFromSceneData(self, sceneData: SceneData):
         logger.info(f"building for scene {sceneData.sceneId}")
 
@@ -61,7 +72,7 @@ class PedScenarioBuilder:
         self._scenarios[sceneData.sceneId] = []
         
         for primaryPedId in primaryPedIds:
-            primaryDf = sceneData.getPedDfByUniqueTrackId(primaryPedId).copy()
+            primaryDf = sceneData.getClippedPedDfByUniqueTrackId(primaryPedId).copy()
             recordingId, start, end, roadWidth = self.getRecordStartEndWidth(primaryDf)
             secondariesDf = self.getOtherScenarioTracksFromScene(
                 otherSceneDf=otherDf,
@@ -71,7 +82,8 @@ class PedScenarioBuilder:
             )
 
             secondaryPedsDf = self.getOtherPedScenarioTracksFromScene(
-                otherSceneDf=allPedDfs,
+                primaryDf=primaryDf,
+                allPedDf=allPedDfs,
                 recordingId = recordingId,
                 start=start,
                 end=end
@@ -131,21 +143,18 @@ class PedScenarioBuilder:
         copied.reset_index(drop=True)
         return copied
 
-
-    def getOtherType(self, otherDf: pd.DataFrame):
-        return otherDf["class"][0]
     
-    def isPedestrian(self, otherDf: pd.DataFrame):
-        return self.getOtherType(otherDf) == TrackClass.Pedestrian.value
+    # def isPedestrian(self, otherDf: pd.DataFrame):
+    #     return self.getOtherType(otherDf) == TrackClass.Pedestrian.value
 
-    def isBicycle(self, otherDf: pd.DataFrame):
-        return self.getOtherType(otherDf) == TrackClass.Bicycle.value
+    # def isBicycle(self, otherDf: pd.DataFrame):
+    #     return self.getOtherType(otherDf) == TrackClass.Bicycle.value
 
-    def isCar(self, otherDf: pd.DataFrame):
-        return self.getOtherType(otherDf) == TrackClass.Car.value
+    # def isCar(self, otherDf: pd.DataFrame):
+    #     return self.getOtherType(otherDf) == TrackClass.Car.value
 
-    def isLargeVehicle(self, otherDf: pd.DataFrame):
-        return self.getOtherType(otherDf) == TrackClass.Truck_Bus.value
+    # def isLargeVehicle(self, otherDf: pd.DataFrame):
+    #     return self.getOtherType(otherDf) == TrackClass.Truck_Bus.value
 
     
     def keepOtherIntersecting(self, primaryDf: pd.DataFrame, secondariesDf: pd.DataFrame):
@@ -177,21 +186,24 @@ class PedScenarioBuilder:
 
     def getOtherPedScenarioTracksFromScene(self, 
                 primaryDf: pd.DataFrame, 
-                allPedDf: pd.DataFrame,
+                allPedDfs: pd.DataFrame,
                 recordingId,
                 start,
-                end):
+                end
+            ):
 
 
-        primaryPedId = primaryDf["uniqueTrackId"][0]
+        primaryPedId = primaryDf["uniqueTrackId"].iat[0]
         scenePedsDf = self.getOtherScenarioTracksFromScene(
             otherSceneDf=allPedDfs,
             recordingId = recordingId,
             start=start,
             end=end
         )
+
+        # print(f"pedestrian with {recordingId, start, end}",  scenePedsDf["uniqueTrackId"].unique())
         primaryIndices = scenePedsDf[scenePedsDf["uniqueTrackId"] == primaryPedId].index
-        scenePedsDf.drop(primaryIndices, in_place=True)
+        scenePedsDf.drop(primaryIndices, inplace=True)
         scenePedsDf.reset_index(drop=True)
         return scenePedsDf
         
@@ -217,18 +229,18 @@ class PedScenarioBuilder:
             otherSpline = TrajectoryUtils.dfToSplines(otherDf)
             otherSplines[otherId] = TrajectoryUtils.dfToSplines(otherSpline)
 
-            # if self.isPedestrian(otherDf):
+            # if TrackClass.isPedestrian(otherDf):
             #     tags += self.getInteractionTags(primarySpline, otherSpline)
             # else:
             tags.add(PedScenarioType.OnComingVehicle)
-            if self.isCar(otherDf):
+            if TrackClass.isCar(otherDf):
                 tags.add(PedScenarioType.OnComingCar)
-            elif self.isBicycle(otherDf):
+            elif TrackClass.isBicycle(otherDf):
                 tags.add(PedScenarioType.OnComingBicyle)
-            elif self.isLargeVehicle(otherDf):
+            elif TrackClass.isLargeVehicle(otherDf):
                 tags.add(PedScenarioType.OnComingLargeVehicle)
             else:
-                raise Exception(f"Unknown class in other df {otherDf['class'][0]}")
+                raise Exception(f"Unknown class in other df {otherDf['class'].iat[0]}")
         
         return tags
 
