@@ -54,6 +54,7 @@ class PedScenarioBuilder:
     def buildFromSceneData(self, sceneData: SceneData):
         logger.info(f"building for scene {sceneData.sceneId}")
         primaryPedIds = sceneData.uniqueClippedPedIds()
+        allPedDfs = sceneData.getClippedPedDfs()
 
         otherDf = sceneData.getClippedOtherDfs()
         self._scenarios[sceneData.sceneId] = []
@@ -67,7 +68,16 @@ class PedScenarioBuilder:
                 start=start,
                 end=end
             )
-            secondariesDf = self.keepIntersectingOrPedestrians(primaryDf, secondariesDf)
+
+            secondaryPedsDf = self.getOtherPedScenarioTracksFromScene(
+                otherSceneDf=allPedDfs,
+                recordingId = recordingId,
+                start=start,
+                end=end
+            )
+
+            secondariesDf = self.keepOtherIntersecting(primaryDf, secondariesDf)
+
             tags = self.getTagsFromSceneOtherDf(secondariesDf)
 
             primaryDf["class"] = "pedestrian"
@@ -105,7 +115,7 @@ class PedScenarioBuilder:
     
 
     def getOtherScenarioTracksFromScene(self, otherSceneDf: pd.DataFrame, recordingId, start, end):
-        """_summary_
+        """Scenario tracks. Returns a copy
 
         Args:
             otherSceneDf (pd.DataFrame): other trajectories from the same scene
@@ -116,7 +126,10 @@ class PedScenarioBuilder:
         """
         
         filter = (otherSceneDf["recordingId"] == recordingId) & (otherSceneDf["frame"] >= start) & (otherSceneDf["frame"] <= end)
-        return otherSceneDf[filter].copy()
+        copied = otherSceneDf[filter].copy()
+        copied.reset_index(drop=True)
+        return copied
+
 
     def getOtherType(self, otherDf: pd.DataFrame):
         return otherDf["class"][0]
@@ -134,29 +147,60 @@ class PedScenarioBuilder:
         return self.getOtherType(otherDf) == TrackClass.Truck_Bus.value
 
     
-    def keepIntersectingOrPedestrians(self, primaryDf: pd.DataFrame, secondariesDf: pd.DataFrame):
+    def keepOtherIntersecting(self, primaryDf: pd.DataFrame, secondariesDf: pd.DataFrame):
         """_summary_
 
         Args:
             primaryDf (pd.DataFrame): primary pedestrian trajectory
             secondariesDf (pd.DataFrame): Other trajectories
         """
+
+        uniqueClasses = secondariesDf["class"].unique()
+        if "pedestrian" in uniqueClasses:
+            raise Exception(f"Other dataframe has pedestrian class!")
+
         intersectingDfs = []
         otherTrackIds = secondariesDf["uniqueTrackId"].unique()
         for otherId in otherTrackIds:
             otherDf = secondariesDf[secondariesDf["uniqueTrackId"] == otherId]
-            if self.isPedestrian(otherDf):
-                # keep even though they don't intersect with each other
+            # if self.isPedestrian(otherDf):
+            #     # keep even though they don't intersect with each other
+            #     intersectingDfs.append(otherDf)
+
+            if TrajectoryUtils.doPathsIntersect(primaryDf, otherDf):
                 intersectingDfs.append(otherDf)
 
-            elif TrajectoryUtils.doPathsIntersect(primaryDf, otherDf):
-                intersectingDfs.append(otherDf)
         
         return pd.concat(intersectingDfs, ignore_index=True)
 
 
+    def getOtherPedScenarioTracksFromScene(self, 
+                primaryDf: pd.DataFrame, 
+                allPedDf: pd.DataFrame
+                recordingId,
+                start,
+                end):
+
+
+        primaryPedId = primaryDf["uniqueTrackId"][0]
+        scenePedsDf = self.getOtherScenarioTracksFromScene(
+            otherSceneDf=allPedDfs,
+            recordingId = recordingId,
+            start=start,
+            end=end
+        )
+        primaryIndices = scenePedsDf[scenePedsDf["uniqueTrackId"] == primaryPedId].index
+        scenePedsDf.drop(primaryIndices, in_place=True)
+        scenePedsDf.reset_index(drop=True)
+        return scenePedsDf
+        
+
 
     def getTagsFromSceneOtherDf(self, primaryDf: pd.DataFrame, secondariesDf: pd.DataFrame):
+        
+        uniqueClasses = secondariesDf["class"].unique()
+        if "pedestrian" in uniqueClasses:
+            raise Exception(f"Other dataframe has pedestrian class!")
 
         otherTrackIds = secondariesDf["uniqueTrackId"].unique()
         tags = set([])
@@ -168,22 +212,53 @@ class PedScenarioBuilder:
         # if len(otherTrackIds) > 0:
         #     tags.append(PedScenarioType.)
         for otherId in otherTrackIds:
-            otherDf = secondariesDf[secondariesDf["uniqueTrackId"] == otherId]
+            otherDf = secondariesDf[secondariesDf["uniqueTrackId"] == otherId] # this is not right? need to filter by frame span
             otherSpline = TrajectoryUtils.dfToSplines(otherDf)
             otherSplines[otherId] = TrajectoryUtils.dfToSplines(otherSpline)
 
-            if self.isPedestrian(otherDf):
-                tags += self.getInteractionTags(primarySpline, otherSpline)
+            # if self.isPedestrian(otherDf):
+            #     tags += self.getInteractionTags(primarySpline, otherSpline)
+            # else:
+            tags.add(PedScenarioType.OnComingVehicle)
+            if self.isCar(otherDf):
+                tags.add(PedScenarioType.OnComingCar)
+            elif self.isBicycle(otherDf):
+                tags.add(PedScenarioType.OnComingBicyle)
+            elif self.isLargeVehicle(otherDf):
+                tags.add(PedScenarioType.OnComingLargeVehicle)
             else:
-                tags.add(PedScenarioType.OnComingVehicle)
-                if self.isCar(otherDf):
-                    tags.add(PedScenarioType.OnComingCar)
-                if self.isBicycle(otherDf):
-                    tags.add(PedScenarioType.OnComingBicyle)
-                if self.isLargeVehicle(otherDf):
-                    tags.add(PedScenarioType.OnComingLargeVehicle)
+                raise Exception(f"Unknown class in other df {otherDf['class'][0]}")
         
         return tags
+
+    
+    def getInteractionTags(self, primaryDf: pd.DataFrame, otherScenarioPedDf: pd.DataFrame):
+        """_summary_
+
+        Args:
+            primaryDf (pd.DataFrame): _description_
+            otherScenarioPedDf (pd.DataFrame): must only have pedestrians from the same scenario
+        """
+        
+        uniqueClasses = otherScenarioPedDf["class"].unique()
+        if "pedestrian" not in uniqueClasses or len(uniqueClasses):
+            raise Exception(f"Scenario ped df has non-pedestrian classes{" ".join(uniqueClasses)}!")
+
+        otherTrackIds = otherScenarioPedDf["uniqueTrackId"].unique()
+        tags = set([])
+
+        # precompute splines
+        primarySpline = TrajectoryUtils.dfToSplines(primaryDf)
+        otherSplines = {}
+
+        for otherId in otherTrackIds:
+            otherDf = otherScenarioPedDf[otherScenarioPedDf["uniqueTrackId"] == otherId] # this is not right? need to filter by frame span
+            otherSpline = TrajectoryUtils.dfToSplines(otherDf)
+            otherSplines[otherId] = TrajectoryUtils.dfToSplines(otherSpline)
+            tags += self.getInteractionTags(primarySpline, otherSpline)
+        
+        return tags
+
     
 
     def getInteractionTags(self, pedSpline1: LineString, pedSpline2: LineString) -> List[PedScenarioType]:
