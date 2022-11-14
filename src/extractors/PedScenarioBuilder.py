@@ -53,15 +53,16 @@ class PedScenarioBuilder:
 
     def buildFromSceneData(self, sceneData: SceneData):
         logger.info(f"building for scene {sceneData.sceneId}")
+
         primaryPedIds = sceneData.uniqueClippedPedIds()
         allPedDfs = sceneData.getClippedPedDfs()
-
         otherDf = sceneData.getClippedOtherDfs()
+
         self._scenarios[sceneData.sceneId] = []
         
         for primaryPedId in primaryPedIds:
             primaryDf = sceneData.getPedDfByUniqueTrackId(primaryPedId).copy()
-            recordingId, start, end, roadWidth = self.getRecordStartEnd(primaryDf)
+            recordingId, start, end, roadWidth = self.getRecordStartEndWidth(primaryDf)
             secondariesDf = self.getOtherScenarioTracksFromScene(
                 otherSceneDf=otherDf,
                 recordingId = recordingId,
@@ -176,7 +177,7 @@ class PedScenarioBuilder:
 
     def getOtherPedScenarioTracksFromScene(self, 
                 primaryDf: pd.DataFrame, 
-                allPedDf: pd.DataFrame
+                allPedDf: pd.DataFrame,
                 recordingId,
                 start,
                 end):
@@ -240,9 +241,10 @@ class PedScenarioBuilder:
             otherScenarioPedDf (pd.DataFrame): must only have pedestrians from the same scenario
         """
         
-        uniqueClasses = otherScenarioPedDf["class"].unique()
-        if "pedestrian" not in uniqueClasses or len(uniqueClasses):
-            raise Exception(f"Scenario ped df has non-pedestrian classes{" ".join(uniqueClasses)}!")
+        if 'class' in otherScenarioPedDf:
+            uniqueClasses = otherScenarioPedDf["class"].unique()
+            if "pedestrian" not in uniqueClasses or len(uniqueClasses):
+                raise Exception(f"Scenario ped df has non-pedestrian classes{' '.join(uniqueClasses)}!")
 
         otherTrackIds = otherScenarioPedDf["uniqueTrackId"].unique()
         tags = set([])
