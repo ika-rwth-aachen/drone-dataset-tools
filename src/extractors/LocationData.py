@@ -433,6 +433,10 @@ class LocationData:
                 dump(self._sceneData[sceneId], fp)
                 logger.info(f"saved to {fpath}")
 
+            dfPrefix = f"{date_time}-fps-{FPS}"
+            pathPrefix = os.path.join(locDir, dfPrefix)
+            self._sceneData[sceneId].saveDataframes(pathPrefix)
+
 
 
     @staticmethod
