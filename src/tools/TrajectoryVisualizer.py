@@ -21,7 +21,7 @@ class TrajectoryVisualizer:
     self.fig, self.ax = plt.subplots(1, 1)
     self.fig.set_size_inches(15, 8)
     plt.subplots_adjust(left=0.0, right=1.0, bottom=0.10, top=1.00)
-    self.fig.canvas.set_window_title(title)
+    # self.fig.canvas.set_window_title(title)
     self.ax.set_title(title)
 
     if backgroundImagePath is None:

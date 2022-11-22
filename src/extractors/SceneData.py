@@ -5,8 +5,11 @@ from tools.TrajectoryUtils import TrajectoryUtils
 from loguru import logger
 from tqdm import tqdm
 from .config import *
+from .TrackDirection import TrackDirection
 import os
 from dill import dump, load
+
+# from tools.TrajectoryAnalyzer import TrajectoryAnalyzer
 
 
 
@@ -49,7 +52,15 @@ class SceneData:
         self._clippedOtherData = None
         self._otherDataLocal = None
         self._otherIds = None
+        self._sceneTrackMeta = None
 
+        # self.trajAnalyzer = TrajectoryAnalyzer(
+        #     fps=FPS,
+        #     idCol="uniqueTrackId",
+        #     positionCols=("sceneX", "sceneY"),
+        #     velocityCols=("xVelocity", "yVelocity"),
+        #     accelerationCols=("xAcceleration", "yAcceleration")
+        # )
         self._dropWorldCoordinateColumns()
         self._transformToLocalCoordinates()
 
@@ -133,7 +144,7 @@ class SceneData:
     def _transformDfToLocalCoordinates(self, df):
 
         # transform position
-        # transform velocity
+        # transform velocity (we cannot do it by translation and rotation)
         # transform heading
 
         origin = Point(self.centerX, self.centerY)
@@ -162,6 +173,37 @@ class SceneData:
         df["sceneX"] = sceneX
         df["sceneY"] = sceneY
         return df
+
+    def _addLocalDynamics(self, df: pd.DataFrame):
+
+        """speed can be negative or positive based on direction
+        """
+
+        sceneXSpeed = []
+        sceneYSpeed = []
+        sceneXAcceleration = []
+        sceneYAcceleration = []
+        sceneSpeed = []
+        sceneAcceleration = []
+
+        # for idx, row in df.iterrows():
+
+
+        pass
+
+
+    def _buildSceneTrackMeta(self):
+        if self._sceneTrackMeta is not None:
+            return
+        
+        pedDf = self.getClippedPedDfs()
+
+        pedIds = pedDf["uniqueTrackId"].unique()
+
+        for pedId in pedIds:
+            pass
+
+
 
     def getPedDataInSceneCorrdinates(self):
         if self._pedDataLocal is None:
