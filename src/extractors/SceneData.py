@@ -8,7 +8,6 @@ from .config import *
 import os
 from dill import dump, load
 
-OTHER_CLIP_LENGTH = 50
 
 
 class SceneData:
@@ -181,7 +180,7 @@ class SceneData:
     def _clipPed(self):
         logger.debug("clipping trajectories")
         scenePolygon = TrajectoryUtils.scenePolygon(
-            self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"] + 2)
+            self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + CLIP_OFFSET)
         dfs = []
         for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId)
@@ -203,7 +202,7 @@ class SceneData:
         logger.debug("clipping other trajectories")
         # we will clip with the bounding box + 50 meters
         scenePolygon = TrajectoryUtils.scenePolygon(
-            self.sceneConfig, self.sceneConfig["boxWidth"] + 50, self.sceneConfig["roadWidth"] + 2)
+            self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"])
         dfs = []
         for otherId in tqdm(self.uniqueOtherIds(), desc=f"clipping other trajectories for scene # {self.sceneId}"):
             otherDf = self.getOtherDfByUniqueTrackId(otherId)
