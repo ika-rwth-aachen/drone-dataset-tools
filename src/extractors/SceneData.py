@@ -179,6 +179,8 @@ class SceneData:
         """speed can be negative or positive based on direction
         """
 
+        horizontalDirection = []
+        verticalDirection = []
         sceneXSpeed = []
         sceneYSpeed = []
         sceneXAcceleration = []

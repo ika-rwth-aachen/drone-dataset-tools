@@ -1,11 +1,12 @@
 from shapely.geometry import LineString, box, Point
 from shapely.affinity import rotate, translate, affine_transform
+from extractors.TrackDirection import TrackDirection
 
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from math import sqrt, inf, cos, sin, radians
-from typing import List
+from typing import List, Tuple
 import vg
 
 class TrajectoryUtils:
@@ -257,5 +258,47 @@ class TrajectoryUtils:
         
         return pd.DataFrame(downTraj).convert_dtypes()
 
+        
+
+    @staticmethod
+    def getTrack_VH_Directions(trackDf: pd.DataFrame, xCol, yCol) -> Tuple[TrackDirection]:
+        """_summary_
+
+        Args:
+            trackDf (pd.DataFrame): NORTH is positive y, EAST is positive x
+
+        Returns:
+            Tuple[TrackDirection]: NORTH/SOUTH, EAST/WEST
+        """
+        # if local y is decreasing, then SOUTH
+        # if local x is increasing, then EAST
+        verticalDirection = TrackDirection.NORTH
+        horizontalDirection = TrackDirection.EAST
+        firstRow = trackDf.head(1).iloc[0]
+        lastRow = trackDf.tail(1).iloc[0]
+        if firstRow[yCol] > lastRow[yCol]:
+            verticalDirection = TrackDirection.SOUTH
+
+        if firstRow[xCol] > lastRow[xCol]:
+            horizontalDirection = TrackDirection.WEST
+
+        return verticalDirection, horizontalDirection
+
 
         
+    @staticmethod
+    def getVelocitySeriesForOne(aPedDf: pd.DataFrame, onCol, fps):
+        seriesVelo = aPedDf[onCol].rolling(window=2).apply(
+            lambda values: (values.iloc[0] - values.iloc[1]) / (1 / fps))
+        seriesVelo.iloc[0] = seriesVelo.iloc[1]
+        return seriesVelo
+    
+    @staticmethod
+    def getVelocitySeriesForAll(pedDf: pd.DataFrame, onCol, fps):
+        pedVelocities = []
+        for pedId in pedDf["uniqueTrackId"].unique():
+            aPed = pedDf[pedDf["uniqueTrackId"]==pedId] 
+            pedVelocities.append(TrajectoryUtils.getVelocitySeriesForOne(aPed, onCol, fps))
+
+        velSeries = pd.concat(pedVelocities)
+        return velSeries
