@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from shapely.geometry import Point
 from tools.TrajectoryUtils import TrajectoryUtils
+from .TrackClass import TrackClass
 from loguru import logger
 from tqdm import tqdm
 from .config import *
@@ -63,6 +64,7 @@ class SceneData:
         # )
         self._dropWorldCoordinateColumns()
         self._transformToLocalCoordinates()
+        self._buildSceneTrackMeta()
 
     def uniquePedIds(self) -> np.ndarray:
         if self._pedIds is None:
@@ -129,7 +131,7 @@ class SceneData:
         self.otherData = self.otherData.drop(
             ["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
 
-    def transformToLocalCoordinate(self):
+    def _transformToLocalCoordinates(self):
         logger.debug("transforming trajectories to scene coordinates")
 
         # translate and rotate.
@@ -179,10 +181,8 @@ class SceneData:
         """speed can be negative or positive based on direction
         """
 
-        horizontalDirection = []
-        verticalDirection = []
-        sceneXSpeed = []
-        sceneYSpeed = []
+        sceneXVelocity= []
+        sceneYVelocity = []
         sceneXAcceleration = []
         sceneYAcceleration = []
         sceneSpeed = []
@@ -195,15 +195,44 @@ class SceneData:
 
 
     def _buildSceneTrackMeta(self):
-        if self._sceneTrackMeta is not None:
-            return
         
-        pedDf = self.getClippedPedDfs()
+        meta = {
+            "uniqueTrackId": [],
+            "initialFrame": [],
+            "finalFrame": [],
+            "numFrames": [],
+            "class": [],
+            "horizontalDirection": [],
+            "verticalDirection": []
+        }
+
+        pedDf = self.getPedDataInSceneCorrdinates()
 
         pedIds = pedDf["uniqueTrackId"].unique()
 
         for pedId in pedIds:
-            pass
+            aPed = pedDf[pedDf["uniqueTrackId"] == pedId]
+            firstRow = aPed.iloc[0]
+            lastRow = aPed.iloc[1]
+
+            vert, hort = TrajectoryUtils.getTrack_VH_Directions(aPed, "sceneX", "sceneY")
+
+            meta["uniqueTrackId"].append(pedId)
+            meta["initialFrame"].append(firstRow["frame"])
+            meta["finalFrame"].append(lastRow["frame"])
+            meta["numFrames"].append(len(aPed))
+            meta["class"].append(TrackClass.Pedestrian.value)
+            meta["horizontalDirection"].append(hort)
+            meta["verticalDirection"].append(vert)
+
+        
+        self._sceneTrackMeta = pd.DataFrame(meta)
+    
+    def getMeta(self):
+        if self._sceneTrackMeta is None:
+            self._buildSceneTrackMeta()
+        return self._sceneTrackMeta
+
 
 
 

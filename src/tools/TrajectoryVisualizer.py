@@ -54,7 +54,7 @@ class TrajectoryVisualizer:
         # plot direction
         lastRow = tracksDf.tail(1)
         endPoint = (lastRow[xCol] / ortho_px_to_meter,  - lastRow[yCol] / ortho_px_to_meter)
-        self.ax.plot(endPoint[0], endPoint[1], marker='x')
+        self.ax.plot(endPoint[0], endPoint[1], marker='x', markerfacecolor=style[0])
 
 
     def showTrack(self, tracksDf, recordingMeta, trackId):
