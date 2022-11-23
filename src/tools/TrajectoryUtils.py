@@ -261,7 +261,7 @@ class TrajectoryUtils:
         
 
     @staticmethod
-    def getTrack_VH_Directions(trackDf: pd.DataFrame, xCol, yCol) -> Tuple[TrackDirection]:
+    def getTrack_VH_Directions(trackDf: pd.DataFrame, xCol, yCol) -> Tuple[TrackDirection, TrackDirection]:
         """_summary_
 
         Args:

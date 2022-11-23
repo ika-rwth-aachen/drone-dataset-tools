@@ -196,6 +196,17 @@ class SceneData:
 
     def _buildSceneTrackMeta(self):
         
+        pedDf = self.getPedDataInSceneCorrdinates()
+        otherDf = self.getOtherDataInSceneCorrdinates()
+        
+        pedMeta = self.getMetaDictForDfs(pedDf)
+        otherMeta = self.getMetaDictForDfs(otherDf)
+        
+        self._sceneTrackMeta = pd.concat([pd.DataFrame(pedMeta), pd.DataFrame(otherMeta)], ignore_index=True)
+
+    
+    def getMetaDictForDfs(self, df: pd.DataFrame):
+        
         meta = {
             "uniqueTrackId": [],
             "initialFrame": [],
@@ -206,27 +217,31 @@ class SceneData:
             "verticalDirection": []
         }
 
-        pedDf = self.getPedDataInSceneCorrdinates()
+        if len(df) == 0:
+            return meta
 
-        pedIds = pedDf["uniqueTrackId"].unique()
+        ids = df["uniqueTrackId"].unique()
 
-        for pedId in pedIds:
-            aPed = pedDf[pedDf["uniqueTrackId"] == pedId]
-            firstRow = aPed.iloc[0]
-            lastRow = aPed.iloc[1]
+        for trackId in ids:
+            trackDf = df[df["uniqueTrackId"] == trackId]
+            firstRow = trackDf.iloc[0]
+            lastRow = trackDf.iloc[1]
 
-            vert, hort = TrajectoryUtils.getTrack_VH_Directions(aPed, "sceneX", "sceneY")
+            vert, hort = TrajectoryUtils.getTrack_VH_Directions(trackDf, "sceneX", "sceneY")
 
-            meta["uniqueTrackId"].append(pedId)
+            meta["uniqueTrackId"].append(trackId)
             meta["initialFrame"].append(firstRow["frame"])
             meta["finalFrame"].append(lastRow["frame"])
-            meta["numFrames"].append(len(aPed))
-            meta["class"].append(TrackClass.Pedestrian.value)
-            meta["horizontalDirection"].append(hort)
-            meta["verticalDirection"].append(vert)
+            meta["numFrames"].append(len(trackDf))
+            if "class" in trackDf:
+                meta["class"].append(firstRow["class"])
+            else:
+                meta["class"].append(TrackClass.Pedestrian.value)
+            meta["horizontalDirection"].append(hort.value)
+            meta["verticalDirection"].append(vert.value)
 
-        
-        self._sceneTrackMeta = pd.DataFrame(meta)
+        return meta
+
     
     def getMeta(self):
         if self._sceneTrackMeta is None:
@@ -321,11 +336,16 @@ class SceneData:
             os.remove(fpath)
         
         self.getPedDataInSceneCorrdinates().to_csv(fpath, index=False)
-        # self.getClippedPedDfs().to_csv(fpath, index=False)
 
         fpath = f"{pathPrefix}-scene-{self.sceneId}-others.csv"
         if os.path.exists(fpath):
             os.remove(fpath)
         
         self.getOtherDataInSceneCorrdinates().to_csv(fpath, index=False)
-        # self.getClippedOtherDfs().to_csv(fpath, index=False)
+
+        
+        fpath = f"{pathPrefix}-scene-{self.sceneId}-meta.csv"
+        if os.path.exists(fpath):
+            os.remove(fpath)
+        
+        self.getMeta().to_csv(fpath, index=False)

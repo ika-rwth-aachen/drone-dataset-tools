@@ -425,6 +425,13 @@ class LocationData:
         date_time = datetime.now().strftime("%Y-%m-%d")
 
         for sceneId in self._sceneData:
+
+            # dataframes
+            dfPrefix = f"{date_time}-fps-{FPS}"
+            pathPrefix = os.path.join(locDir, dfPrefix)
+            self._sceneData[sceneId].saveDataframes(pathPrefix)
+
+            # whole thing as dill
             fname = f"{date_time}-fps-{FPS}-scene-{sceneId}.dll"
             fpath = os.path.join(locDir, fname)
             if os.path.exists(fpath):
@@ -432,10 +439,6 @@ class LocationData:
             with open(fpath, "wb") as fp:
                 dump(self._sceneData[sceneId], fp)
                 logger.info(f"saved to {fpath}")
-
-            dfPrefix = f"{date_time}-fps-{FPS}"
-            pathPrefix = os.path.join(locDir, dfPrefix)
-            self._sceneData[sceneId].saveDataframes(pathPrefix)
 
 
 

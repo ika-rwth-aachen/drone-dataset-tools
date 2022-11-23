@@ -56,7 +56,7 @@ class Loader:
         #         ids.append(rMeta["recordingId"])
         # return ids
         recordingIds = self.locationToRecordingIds[locationId]
-        # recordingIds = recordingIds[:1]
+        # recordingIds = recordingIds[:1] # TODO for testing
         return recordingIds
     
 
@@ -139,7 +139,7 @@ class Loader:
         pass
 
 
-    def getLocationData(self, locationId, useSceneConfigToExtract=False):
+    def getLocationData(self, locationId, useSceneConfigToExtract=False, precomputeSceneData=True):
         recordingIds = self.getRecordingIdsOfALocation(locationId)
         logging.info(f"recordingIds: {recordingIds}")
         recordingDataList = [self.getRecordingData(rId) for rId in recordingIds]
@@ -150,7 +150,8 @@ class Loader:
             recordingIds = recordingIds, 
             recordingDataList = recordingDataList, 
             useSceneConfigToExtract = useSceneConfigToExtract,
-            backgroundImagePath = self.getBackgroundImagePath(recordingIds[0])
+            backgroundImagePath = self.getBackgroundImagePath(recordingIds[0]),
+            precomputeSceneData=precomputeSceneData
         )
 
     
