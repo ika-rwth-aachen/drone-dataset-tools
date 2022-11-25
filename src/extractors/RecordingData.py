@@ -189,19 +189,22 @@ class RecordingData:
 
             pedData = self.getCrossingDfForScene(
                 sceneId, sceneConfig, refresh=False, fps=FPS)
-            otherData = self.getOtherDfForScene(
-                sceneId, sceneConfig, refresh=False, fps=FPS)
-            self._sceneData[sceneId] = SceneData(
-                self.locationId,
-                self.orthoPxToMeter,
-                sceneId,
-                sceneConfig,
-                sceneConfig["boxWidth"],
-                sceneConfig["roadWidth"],
-                pedData=pedData,
-                otherData=otherData,
-                backgroundImagePath=self.backgroundImagePath
-            )
+            if len(pedData) == 0:
+                self._sceneData[sceneId] = None
+            else:
+                otherData = self.getOtherDfForScene(
+                    sceneId, sceneConfig, refresh=False, fps=FPS)
+                self._sceneData[sceneId] = SceneData(
+                    self.locationId,
+                    self.orthoPxToMeter,
+                    sceneId,
+                    sceneConfig,
+                    sceneConfig["boxWidth"],
+                    sceneConfig["roadWidth"],
+                    pedData=pedData,
+                    otherData=otherData,
+                    backgroundImagePath=self.backgroundImagePath
+                )
 
         return self._sceneData[sceneId]
 

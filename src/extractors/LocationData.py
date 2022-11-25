@@ -285,18 +285,23 @@ class LocationData:
 
             otherData = self.getSceneOtherDf(sceneId)
             pedData = self.getSceneCrossingDf(sceneId, boxWidth, boxHeight)
-            sceneConfig = self.getSceneConfig()[str(sceneId)]
-            self._sceneData[sceneId] = SceneData(
-                self.locationId,
-                self.orthoPxToMeter,
-                sceneId,
-                sceneConfig,
-                boxWidth,
-                boxHeight,
-                pedData=pedData,
-                otherData=otherData,
-                backgroundImagePath=self.backgroundImagePath
-            )
+            
+            if len(pedData) == 0:
+                self._sceneData[sceneId] = None
+                continue
+            else:
+                sceneConfig = self.getSceneConfig()[str(sceneId)]
+                self._sceneData[sceneId] = SceneData(
+                    self.locationId,
+                    self.orthoPxToMeter,
+                    sceneId,
+                    sceneConfig,
+                    boxWidth,
+                    boxHeight,
+                    pedData=pedData,
+                    otherData=otherData,
+                    backgroundImagePath=self.backgroundImagePath
+                )
 
         return self._sceneData[sceneId]
 
@@ -427,10 +432,15 @@ class LocationData:
 
         for sceneId in self._sceneData:
 
+            if self.getSceneData(sceneId) is None:
+                logging.warn(f"No scene data for {sceneId}")
+                continue
+
+
             # dataframes
             dfPrefix = f"{date_time}-fps-{FPS}"
             pathPrefix = os.path.join(locDir, dfPrefix)
-            self._sceneData[sceneId].saveDataframes(pathPrefix)
+            self.getSceneData(sceneId).saveDataframes(pathPrefix)
 
             # whole thing as dill
             fname = f"{date_time}-fps-{FPS}-scene-{sceneId}.dll"
@@ -438,7 +448,7 @@ class LocationData:
             if os.path.exists(fpath):
                 os.remove(fpath)
             with open(fpath, "wb") as fp:
-                dump(self._sceneData[sceneId], fp)
+                dump(self.getSceneData(sceneId), fp)
                 logger.info(f"saved to {fpath}")
 
 

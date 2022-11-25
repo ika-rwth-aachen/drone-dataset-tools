@@ -64,6 +64,7 @@ class SceneData:
         #     velocityCols=("xVelocity", "yVelocity"),
         #     accelerationCols=("xAcceleration", "yAcceleration")
         # )
+        print(len(self.pedData))
         self._dropWorldCoordinateColumns()
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
