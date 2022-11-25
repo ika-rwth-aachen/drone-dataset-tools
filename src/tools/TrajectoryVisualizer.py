@@ -138,3 +138,7 @@ class TrajectoryVisualizer:
         for pedId in pedIds:
             pedDf = df[df[idCol] == pedId]
             plt.plot(pedDf[xCol], pedDf[yCol])
+            # plot direction
+            lastRow = pedDf.tail(1)
+            endPoint = (lastRow[xCol] , lastRow[yCol])
+            plt.plot(endPoint[0], endPoint[1], marker='x')
