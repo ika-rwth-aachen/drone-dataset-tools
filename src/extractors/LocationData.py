@@ -288,7 +288,6 @@ class LocationData:
             
             if len(pedData) == 0:
                 self._sceneData[sceneId] = None
-                continue
             else:
                 sceneConfig = self.getSceneConfig()[str(sceneId)]
                 self._sceneData[sceneId] = SceneData(
