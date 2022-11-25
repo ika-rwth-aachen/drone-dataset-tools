@@ -67,6 +67,7 @@ class SceneData:
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
         self._trimHeadAndTailForLocal()
+        self._clipPed(crossingOffset = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS) # another pass as we had bigger offset to calculate dynamics
         self._buildSceneTrackMeta()
 
     def uniquePedIds(self) -> np.ndarray:
@@ -292,12 +293,12 @@ class SceneData:
 
     # region clipping
 
-    def _clipPed(self):
+    def _clipPed(self, crossingOffset = CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS):
         logger.debug("clipping trajectories")
         scenePolygon = TrajectoryUtils.scenePolygon(
-            self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + CROSSING_CLIP_OFFSET)
+            self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + crossingOffset)
         dfs = []
-        for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId}"):
+        for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId)
             clippedDf = TrajectoryUtils.clipByRect(
                 pedDf, "xCenter", "yCenter", "frame", scenePolygon)
