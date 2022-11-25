@@ -185,10 +185,10 @@ class SceneData:
         """
 
         logging.info(f"adding pedestrian local dynamics for scene {self.sceneId}")
-        self._addLocalDynamicsForDf(self.getPedDataInSceneCorrdinates())
+        self._addLocalDynamicsForDf(self.getPedDataInSceneCoordinates())
 
         logging.info(f"adding other local dynamics for scene {self.sceneId}")
-        self._addLocalDynamicsForDf(self.getOtherDataInSceneCorrdinates())
+        self._addLocalDynamicsForDf(self.getOtherDataInSceneCoordinates())
 
         pass
 
@@ -203,18 +203,18 @@ class SceneData:
         """ Must be called before building the scene track meta
         """
         logging.info(f"trimming pedestrian local data for scene {self.sceneId}")
-        self._pedDataLocal = TrajectoryUtils.trimHeadAndTailForAll(self.getPedDataInSceneCorrdinates())
+        self._pedDataLocal = TrajectoryUtils.trimHeadAndTailForAll(self.getPedDataInSceneCoordinates())
         self._clippedPedData = self._pedDataLocal
 
         logging.info(f"trimming other local data for scene {self.sceneId}")
-        self._otherDataLocal = TrajectoryUtils.trimHeadAndTailForAll(self.getOtherDataInSceneCorrdinates())
+        self._otherDataLocal = TrajectoryUtils.trimHeadAndTailForAll(self.getOtherDataInSceneCoordinates())
         self._clippedOtherData = self._otherDataLocal
 
 
     def _buildSceneTrackMeta(self):
 
-        pedDf = self.getPedDataInSceneCorrdinates()
-        otherDf = self.getOtherDataInSceneCorrdinates()
+        pedDf = self.getPedDataInSceneCoordinates()
+        otherDf = self.getOtherDataInSceneCoordinates()
 
         pedMeta = self.getMetaDictForDfs(pedDf)
         otherMeta = self.getMetaDictForDfs(otherDf)
@@ -223,6 +223,7 @@ class SceneData:
             [pd.DataFrame(pedMeta), pd.DataFrame(otherMeta)], ignore_index=True)
 
     def getMetaDictForDfs(self, df: pd.DataFrame):
+
 
         meta = {
             "uniqueTrackId": [],
@@ -241,6 +242,7 @@ class SceneData:
 
         for trackId in ids:
             trackDf = df[df["uniqueTrackId"] == trackId]
+            # print(trackId, len(trackDf))
             firstRow = trackDf.iloc[0]
             lastRow = trackDf.iloc[1]
 
@@ -279,13 +281,13 @@ class SceneData:
 
         pass
 
-    def getPedDataInSceneCorrdinates(self):
+    def getPedDataInSceneCoordinates(self):
         if self._pedDataLocal is None:
             self._transformToLocalCoordinates()
 
         return self._pedDataLocal
 
-    def getOtherDataInSceneCorrdinates(self):
+    def getOtherDataInSceneCoordinates(self):
         if self._otherDataLocal is None:
             self._transformToLocalCoordinates()
 
@@ -302,7 +304,7 @@ class SceneData:
             pedDf = self.getPedDfByUniqueTrackId(pedId)
             clippedDf = TrajectoryUtils.clipByRect(
                 pedDf, "xCenter", "yCenter", "frame", scenePolygon)
-            if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
+            if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"] - 1:
                 logger.debug(
                     f"Disregarding trajectory for {pedId} because the length is too low")
             else:
@@ -318,7 +320,7 @@ class SceneData:
         logger.debug("clipping other trajectories")
         # we will clip with the bounding box + 50 meters
         scenePolygon = TrajectoryUtils.scenePolygon(
-            self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"])
+            self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"] + 12) # needed for bikes
         dfs = []
         for otherId in tqdm(self.uniqueOtherIds(), desc=f"clipping other trajectories for scene # {self.sceneId}"):
             otherDf = self.getOtherDfByUniqueTrackId(otherId)
@@ -362,13 +364,13 @@ class SceneData:
         if os.path.exists(fpath):
             os.remove(fpath)
 
-        self.getPedDataInSceneCorrdinates().to_csv(fpath, index=False)
+        self.getPedDataInSceneCoordinates().to_csv(fpath, index=False)
 
         fpath = f"{pathPrefix}-scene-{self.sceneId}-others.csv"
         if os.path.exists(fpath):
             os.remove(fpath)
 
-        self.getOtherDataInSceneCorrdinates().to_csv(fpath, index=False)
+        self.getOtherDataInSceneCoordinates().to_csv(fpath, index=False)
 
         fpath = f"{pathPrefix}-scene-{self.sceneId}-meta.csv"
         if os.path.exists(fpath):

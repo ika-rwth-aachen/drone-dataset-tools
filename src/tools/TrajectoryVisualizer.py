@@ -75,7 +75,7 @@ class TrajectoryVisualizer:
             pedDf = locationData.getCrossingDfByUniqueTrackId(uniqueTrackId)
             self.plot(locationData.orthoPxToMeter, pedDf)
 
-    def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False, showLocal=False, showOthers=False):
+    def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False, showLocal=False, showOthers=False, ids=None):
 
         self.initPlot(
             recordingId=sceneData.pedData.recordingId[0],
@@ -86,6 +86,8 @@ class TrajectoryVisualizer:
         # show pedestrians
         uniqueCrossingIds = sceneData.uniquePedIds()
         for uniqueTrackId in uniqueCrossingIds:
+            if (ids is not None) and (uniqueTrackId not in ids):
+                continue
             if not onlyClipped:
                 pedDf = sceneData.getPedDfByUniqueTrackId(uniqueTrackId)
                 self.plot(sceneData.orthoPxToMeter, pedDf)
@@ -103,6 +105,8 @@ class TrajectoryVisualizer:
         if showOthers:
             uniqueCrossingIds = sceneData.uniqueOtherIds()
             for uniqueTrackId in uniqueCrossingIds:
+                if (ids is not None) and (uniqueTrackId not in ids):
+                    continue
                 if not onlyClipped:
                     otherDf = sceneData.getOtherDfByUniqueTrackId(
                         uniqueTrackId)
