@@ -38,7 +38,7 @@ class TrajectoryAnalyzer:
             midOffset (float): mid section starts and ends by midOffset from the boundary of the scene bounding box.
         """
 
-        pedDf = sceneData.getClippedPedDfs()
+        pedDf = sceneData.getPedDataInSceneCoordinates()
 
         # we get trajectories with y-axis
         # Each pedestrian can start near y = 0 or y = maxY
@@ -46,6 +46,9 @@ class TrajectoryAnalyzer:
         minY = -maxY
 
         # TODO incorrect, this can sometimes have peds' finishing section
+
+        
+
         firstPart = self.clipByYaxis(pedDf, minY=minY, maxY=minY + midOffset)
         midPart = self.clipByYaxis(
             pedDf, minY=minY + midOffset, maxY=maxY - midOffset)

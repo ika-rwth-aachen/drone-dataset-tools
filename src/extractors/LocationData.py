@@ -44,6 +44,7 @@ class LocationData:
         self.validateRecordingMeta()
 
         self.frameRate = self.recordingMetaList[0]["frameRate"]
+        self.fps = FPS
         self.orthoPxToMeter = self.recordingMetaList[0]["orthoPxToMeter"]
 
         # cache

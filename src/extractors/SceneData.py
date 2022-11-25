@@ -31,6 +31,7 @@ class SceneData:
         otherData: pd.DataFrame,
         backgroundImagePath=None
     ):
+        self.fps = FPS
         self.locationId = locationId
         self.orthoPxToMeter = orthoPxToMeter  # for visualization
         self.sceneId = sceneId
@@ -94,6 +95,12 @@ class SceneData:
             return clippedDf.uniqueTrackId.unique()
         return []
 
+    def filterByIds(self, df: pd.DataFrame, uniqueTrackIds: List[int]) -> pd.DataFrame:
+        criterion = df['uniqueTrackId'].map(
+            lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
+        return df[criterion]
+
+
     def getClippedPedDfByUniqueTrackId(self, uniqueTrackId):
         return self.getPedDfByUniqueTrackId(uniqueTrackId, True)
 
@@ -104,13 +111,9 @@ class SceneData:
 
         if clipped:
             clippedDf = self.getClippedPedDfs()
-            criterion = clippedDf['uniqueTrackId'].map(
-                lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
-            return clippedDf[criterion]
+            return self.filterByIds(clippedDf, uniqueTrackIds)
         else:
-            criterion = self.pedData['uniqueTrackId'].map(
-                lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
-            return self.pedData[criterion]
+            return self.filterByIds(self.pedData, uniqueTrackIds)
 
     def getOtherDfByUniqueTrackId(self, uniqueTrackId, clipped=False):
         return self.getOtherDfByUniqueTrackIds([uniqueTrackId], clipped=clipped)
@@ -119,13 +122,9 @@ class SceneData:
 
         if clipped:
             clippedDf = self.getClippedOtherDfs()
-            criterion = clippedDf['uniqueTrackId'].map(
-                lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
-            return clippedDf[criterion]
+            return self.filterByIds(clippedDf, uniqueTrackIds)
         else:
-            criterion = self.otherData['uniqueTrackId'].map(
-                lambda uniqueTrackId: uniqueTrackId in uniqueTrackIds)
-            return self.otherData[criterion]
+            return self.filterByIds(self.otherData, uniqueTrackIds)
 
     def _dropWorldCoordinateColumns(self):
         logger.debug(
@@ -293,6 +292,33 @@ class SceneData:
 
         return self._otherDataLocal
 
+    
+    def getOtherByDirection(self, direction: TrackDirection) -> pd.DataFrame:
+        otherDf = self.getOtherDataInSceneCoordinates()
+        meta = self.getMeta()
+
+        # pedIds in direction 
+        classFilter = (meta["class"] != TrackDirection.Pedestrian.value)
+        directionFilter = (meta["horizontalDirection"] == direction.value) | (meta["verticalDirection"] == direction.value)
+        idsInDirection = meta[classFilter & directionFilter]
+
+        return self.filterByIds(otherDf, idsInDirection)
+        pass
+
+
+    def getPedByDirection(self, direction: TrackDirection) -> pd.DataFrame:
+        pedDf = self.getPedDataInSceneCoordinates()
+        meta = self.getMeta()
+
+        # pedIds in direction 
+        classFilter = (meta["class"] == TrackDirection.Pedestrian.value)
+        directionFilter = (meta["horizontalDirection"] == direction.value) | (meta["verticalDirection"] == direction.value)
+        pedIdsInDirection = meta[classFilter & directionFilter]
+
+        return self.filterByIds(pedDf, pedIdsInDirection)
+
+
+
     # region clipping
 
     def _clipPed(self, crossingOffset = CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS):
@@ -355,6 +381,8 @@ class SceneData:
 
     def clippedOtherSize(self):
         return len(self.uniqueClippedOtherIds())
+    
+    #endregion
 
     def saveDataframes(self, pathPrefix: str):
         """
