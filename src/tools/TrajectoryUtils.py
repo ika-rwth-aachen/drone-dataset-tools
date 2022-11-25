@@ -9,6 +9,7 @@ from math import sqrt, inf, cos, sin, radians
 from typing import List, Tuple
 import vg
 
+
 class TrajectoryUtils:
 
     @staticmethod
@@ -69,7 +70,6 @@ class TrajectoryUtils:
             df["roadWidth"] = sceneConfig["roadWidth"]
             return df
         return None
-    
 
     @staticmethod
     def clip(pedDf, xCol, yCol, frameCol, sceneConfig, boxWidth, boxHeight) -> pd.DataFrame:
@@ -149,12 +149,10 @@ class TrajectoryUtils:
         translated = affine_transform(point, translationMatrix)
         return affine_transform(translated, rotationMatrix)  # order matters.
 
-    
     @staticmethod
     def getType(trajDf: pd.DataFrame) -> str:
         head = trajDf.head(1).to_dict("records")[0]
         return head["class"]
-
 
     # region trajectory interactions
 
@@ -198,20 +196,19 @@ class TrajectoryUtils:
     @staticmethod
     def minSplineDistance(spline1: LineString, spline2: LineString) -> float:
         return spline1.distance(spline2)
-    
+
     @staticmethod
     def splineToFirstVector(spline: LineString) -> np.array:
         return np.asarray((spline.coords[1][0] - spline.coords[0][0], spline.coords[1][1] - spline.coords[1][1]))
 
     @staticmethod
     def sameDirectionSplines(spline1: LineString, spline2: LineString):
-
         """Naive approach
 
         Returns:
             _type_: _description_
         """
-        
+
         v0 = TrajectoryUtils.splineToFirstVector(spline1)
         v1 = TrajectoryUtils.splineToFirstVector(spline2)
         # angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
@@ -220,45 +217,45 @@ class TrajectoryUtils:
             return False
         return True
 
-    #endregion
+    # endregion
 
     @staticmethod
-    def downSample(traj: pd.DataFrame, fromFPS:float, toFPS: float):
+    def downSample(traj: pd.DataFrame, fromFPS: float, toFPS: float):
         if fromFPS < toFPS:
-            raise Exception(f"downSample: Up sampling not supported for frames")
+            raise Exception(
+                f"downSample: Up sampling not supported for frames")
         if fromFPS == toFPS:
             return traj
-        
+
         keepInterval = fromFPS // toFPS
 
         downTraj = []
         count = 0
-        for _, row in  tqdm(traj.iterrows(), desc=f"downsampling", total=len(traj)):
+        for _, row in tqdm(traj.iterrows(), desc=f"downsampling", total=len(traj)):
             if count % keepInterval == 0:
-            # if row["trackLifetime"] % keepInterval == 0: # a little error will break it
+                # if row["trackLifetime"] % keepInterval == 0: # a little error will break it
                 downTraj.append(row)
             count += 1
-        
+
         return pd.DataFrame(downTraj).convert_dtypes()
 
     @staticmethod
-    def downSampleByTrackLifeTime(traj: pd.DataFrame, fromFPS:float, toFPS: float):
+    def downSampleByTrackLifeTime(traj: pd.DataFrame, fromFPS: float, toFPS: float):
         if fromFPS < toFPS:
-            raise Exception(f"downSample: Up sampling not supported for frames")
+            raise Exception(
+                f"downSample: Up sampling not supported for frames")
         if fromFPS == toFPS:
             return traj
-        
+
         keepInterval = fromFPS // toFPS
 
         downTraj = []
-        for _, row in  tqdm(traj.iterrows(), desc=f"downsampling", total=len(traj)):
-        # for _, row in traj.iterrows():
-            if row["trackLifetime"] % keepInterval == 0: # a little error will break it
+        for _, row in tqdm(traj.iterrows(), desc=f"downsampling", total=len(traj)):
+            # for _, row in traj.iterrows():
+            if row["trackLifetime"] % keepInterval == 0:  # a little error will break it
                 downTraj.append(row)
-        
-        return pd.DataFrame(downTraj).convert_dtypes()
 
-        
+        return pd.DataFrame(downTraj).convert_dtypes()
 
     @staticmethod
     def getTrack_VH_Directions(trackDf: pd.DataFrame, xCol, yCol) -> Tuple[TrackDirection, TrackDirection]:
@@ -284,25 +281,61 @@ class TrajectoryUtils:
 
         return verticalDirection, horizontalDirection
 
-
-        
     @staticmethod
-    def getVelocitySeriesForOne(aPedDf: pd.DataFrame, onCol, fps):
-        seriesVelo = aPedDf[onCol].rolling(window=2).apply(
+    def getTimeDerivativeForOne(aTrack: pd.DataFrame, onCol, fps):
+        derivativeSeries = aTrack[onCol].rolling(window=2).apply(
             lambda values: (values.iloc[0] - values.iloc[1]) / (1 / fps))
-        seriesVelo.iloc[0] = seriesVelo.iloc[1]
-        return seriesVelo
-    
-    @staticmethod
-    def getVelocitySeriesForAll(pedDf: pd.DataFrame, onCol, fps):
-        pedVelocities = []
-        for pedId in pedDf["uniqueTrackId"].unique():
-            aPed = pedDf[pedDf["uniqueTrackId"]==pedId] 
-            pedVelocities.append(TrajectoryUtils.getVelocitySeriesForOne(aPed, onCol, fps))
+        derivativeSeries.iloc[0] = derivativeSeries.iloc[1]
+        return derivativeSeries
 
-        velSeries = pd.concat(pedVelocities)
+    @staticmethod
+    def getVelocitySeriesForOne(aTrack: pd.DataFrame, onCol, fps):
+        return TrajectoryUtils.getTimeDerivativeForOne(aTrack, onCol, fps)
+        # seriesVelo = aTrack[onCol].rolling(window=2).apply(
+        #     lambda values: (values.iloc[0] - values.iloc[1]) / (1 / fps))
+        # seriesVelo.iloc[0] = seriesVelo.iloc[1]
+        # return seriesVelo
+
+    @staticmethod
+    def getVelocitySeriesForAll(tracksDf: pd.DataFrame, onCol, fps):
+        individualSeres = []
+        for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"deriving velocity on {onCol} at fps {fps}"):
+            aTrack = tracksDf[tracksDf["uniqueTrackId"] == trackId]
+            individualSeres.append(
+                TrajectoryUtils.getTimeDerivativeForOne(aTrack, onCol, fps))
+
+        velSeries = pd.concat(individualSeres)
         return velSeries
-    
+
+    @staticmethod
+    def getAccelerationSeriesForAll(tracksDf: pd.DataFrame, onCol, fps):
+        individualSeres = []
+        for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"deriving acceleration on {onCol} at fps {fps}"):
+            aTrack = tracksDf[tracksDf["uniqueTrackId"] == trackId]
+            individualSeres.append(
+                TrajectoryUtils.getTimeDerivativeForOne(aTrack, onCol, fps))
+
+        accSeries = pd.concat(individualSeres)
+        return accSeries
+
+    @staticmethod
+    def getAccelerationSerieFromVelocityForOne(velocitySeries: pd.Series, fps):
+        seriesAcc = velocitySeries.rolling(window=2).apply(
+            lambda values: (values.iloc[0] - values.iloc[1]) / (1 / fps))
+        seriesAcc.iloc[0] = seriesAcc.iloc[1]
+        return seriesAcc
+
+        pass
+
+    @staticmethod
+    def trimHeadAndTailForAll(tracksDf: pd.DataFrame):
+        trimmedTracks = []
+        for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"trimming trajectories"):
+            aTrack = tracksDf[tracksDf["uniqueTrackId"] == trackId]
+            trimmedTracks.append(aTrack.iloc[2: len(aTrack) - 2, :]) # 4 frames to exclude invalid acceleration and velocities
+        
+        return pd.concat(trimmedTracks)
+
     @staticmethod
     def rotate(trackDf: pd.DataFrame, origin: Point = None):
         if origin is not None:
