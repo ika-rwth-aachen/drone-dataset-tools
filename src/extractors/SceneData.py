@@ -9,9 +9,9 @@ from .config import *
 from .TrackDirection import TrackDirection
 import os
 from dill import dump, load
+from typing import List, Tuple
 
 # from tools.TrajectoryAnalyzer import TrajectoryAnalyzer
-
 
 
 class SceneData:
@@ -177,11 +177,10 @@ class SceneData:
         return df
 
     def _addLocalDynamics(self, df: pd.DataFrame):
-
         """speed can be negative or positive based on direction
         """
 
-        sceneXVelocity= []
+        sceneXVelocity = []
         sceneYVelocity = []
         sceneXAcceleration = []
         sceneYAcceleration = []
@@ -190,23 +189,21 @@ class SceneData:
 
         # for idx, row in df.iterrows():
 
-
         pass
 
-
     def _buildSceneTrackMeta(self):
-        
+
         pedDf = self.getPedDataInSceneCorrdinates()
         otherDf = self.getOtherDataInSceneCorrdinates()
-        
+
         pedMeta = self.getMetaDictForDfs(pedDf)
         otherMeta = self.getMetaDictForDfs(otherDf)
-        
-        self._sceneTrackMeta = pd.concat([pd.DataFrame(pedMeta), pd.DataFrame(otherMeta)], ignore_index=True)
 
-    
+        self._sceneTrackMeta = pd.concat(
+            [pd.DataFrame(pedMeta), pd.DataFrame(otherMeta)], ignore_index=True)
+
     def getMetaDictForDfs(self, df: pd.DataFrame):
-        
+
         meta = {
             "uniqueTrackId": [],
             "initialFrame": [],
@@ -227,7 +224,8 @@ class SceneData:
             firstRow = trackDf.iloc[0]
             lastRow = trackDf.iloc[1]
 
-            vert, hort = TrajectoryUtils.getTrack_VH_Directions(trackDf, "sceneX", "sceneY")
+            vert, hort = TrajectoryUtils.getTrack_VH_Directions(
+                trackDf, "sceneX", "sceneY")
 
             meta["uniqueTrackId"].append(trackId)
             meta["initialFrame"].append(firstRow["frame"])
@@ -242,14 +240,24 @@ class SceneData:
 
         return meta
 
-    
     def getMeta(self):
         if self._sceneTrackMeta is None:
             self._buildSceneTrackMeta()
         return self._sceneTrackMeta
 
+    def getTrackMeta(self, trackId) -> pd.Series:
+        metaDf = self.getMeta()
+        return metaDf[metaDf["uniqueTrackId"] == trackId].iloc[0]
 
+    def get_VH_Directions(self, trackId) -> Tuple[TrackDirection, TrackDirection]:
 
+        trackMeta = self.getTrackMeta(trackId)
+        return (
+            TrackDirection.createByValue(trackMeta["verticalDirection"]),
+            TrackDirection.createByValue(trackMeta["horizontalDirection"])
+        )
+
+        pass
 
     def getPedDataInSceneCorrdinates(self):
         if self._pedDataLocal is None:
@@ -326,26 +334,24 @@ class SceneData:
     def clippedOtherSize(self):
         return len(self.uniqueClippedOtherIds())
 
-
-    def saveDataframes(self, pathPrefix:str):
+    def saveDataframes(self, pathPrefix: str):
         """
             saves clipped dataframes only
         """
         fpath = f"{pathPrefix}-scene-{self.sceneId}-pedestrians.csv"
         if os.path.exists(fpath):
             os.remove(fpath)
-        
+
         self.getPedDataInSceneCorrdinates().to_csv(fpath, index=False)
 
         fpath = f"{pathPrefix}-scene-{self.sceneId}-others.csv"
         if os.path.exists(fpath):
             os.remove(fpath)
-        
+
         self.getOtherDataInSceneCorrdinates().to_csv(fpath, index=False)
 
-        
         fpath = f"{pathPrefix}-scene-{self.sceneId}-meta.csv"
         if os.path.exists(fpath):
             os.remove(fpath)
-        
+
         self.getMeta().to_csv(fpath, index=False)
