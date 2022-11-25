@@ -11,7 +11,7 @@ Overall steps:
 
 For location 2, here goes the bounding boxes. The data is available [here](../data/scenes/ind.json).
 
-<img src="./images/location-scene-annotation.PNG" width="600">
+<img src="./images/location-scene-annotation.png" width="600">
 
 
 # Steps

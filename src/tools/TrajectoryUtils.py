@@ -302,3 +302,21 @@ class TrajectoryUtils:
 
         velSeries = pd.concat(pedVelocities)
         return velSeries
+    
+    @staticmethod
+    def rotate(trackDf: pd.DataFrame, origin: Point = None):
+        if origin is not None:
+            raise Exception("trajectory rotate does not support origin")
+        pass
+
+    @staticmethod
+    def flipY(trackDf: pd.DataFrame, origin: Point = None):
+        if origin is not None:
+            raise Exception("trajectory flipY does not support origin")
+        pass
+
+    @staticmethod
+    def flipX(trackDf: pd.DataFrame, origin: Point = None):
+        if origin is not None:
+            raise Exception("trajectory flipX does not support origin")
+        pass
