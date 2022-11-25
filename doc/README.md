@@ -15,3 +15,31 @@ The original data has position and dynamics in the image coordinate system which
 
 So, our scene data looks like this (plotted in the image coordinate system)
 <img src="./images/scene-data.PNG" width="600">
+
+## Derived Data
+
+**Additional attributes for track**
+
+| Attribute | Description |
+| --- | ------ |
+| uniqueTrackId | Unique track identifier in a location. First two digits denote the recordingId and last three digits denote the trackId in the recording. |
+| sceneId | Every scene in a location has a sceneId |
+| roadWidth | Approximate road width along the scene y-axis |
+| sceneX | track x position in the scene coordinate system |
+| sceneY | track y position in the scene coordinate system |
+
+**Scene meta data**
+
+The meta data is developed in clipped trajectories in the scene coordinate system.
+
+| Attribute | Description |
+| --- | ------ |
+| uniqueTrackId | Unique track identifier in a location. First two digits denote the recordingId and last three digits denote the trackId in the recording. |
+| initialFrame | starting frame in the recording |
+| finalFrame |  ending frame in the recording  |
+| numFrames | Life span in frames. Depends on the FPS of the data. |
+| class | type of the actor |
+| horizontalDirection | Positive x is EAST |
+| verticalDirection | Positive y is NORTH |
+
+
