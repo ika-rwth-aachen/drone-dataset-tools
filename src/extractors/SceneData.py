@@ -69,7 +69,9 @@ class SceneData:
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
         self._trimHeadAndTailForLocal()
-        self._clipPed(crossingOffset = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS) # another pass as we had bigger offset to calculate dynamics
+        self._clipPed(crossingOffset = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS, onFull=False) # another pass as we had bigger offset to calculate dynamics
+        self._pedDataLocal = self._clippedPedData # because clipping second time creates a new data frame # TODO remove pedDataLocal altogether
+        self._otherDataLocal = self._clippedOtherData # because clipping second time creates a new data frame
         self._buildSceneTrackMeta()
 
     def uniquePedIds(self) -> np.ndarray:
@@ -322,20 +324,30 @@ class SceneData:
 
     # region clipping
 
-    def _clipPed(self, crossingOffset = CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS):
+    def _clipPed(self, crossingOffset = CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS, onFull = True):
+        
         logger.debug("clipping trajectories")
         scenePolygon = TrajectoryUtils.scenePolygon(
             self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + crossingOffset)
         dfs = []
         for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
-            pedDf = self.getPedDfByUniqueTrackId(pedId)
+            pedDf = self.getPedDfByUniqueTrackId(pedId, clipped = not onFull)
+
+            if len(pedDf) < 3: 
+                logging.warn(f"trajectory is too short ({len(pedDf)}) to be clipped for ped {pedId}")
+                continue
+
             clippedDf = TrajectoryUtils.clipByRect(
                 pedDf, "xCenter", "yCenter", "frame", scenePolygon)
-            if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"] - 1:
-                logger.debug(
-                    f"Disregarding trajectory for {pedId} because the length is too low")
+
+            trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
+            if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"] - 1):
+                logging.warn(
+                    f"Disregarding trajectory for {pedId} because the length {trackLength} is too short and rows too short ({len(pedDf)})")
             else:
                 dfs.append(clippedDf)
+            
+                
 
         if len(dfs) == 0:
             """No pedData"""
@@ -343,14 +355,14 @@ class SceneData:
         else:
             self._clippedPedData = pd.concat(dfs, ignore_index=True)
 
-    def _clipOther(self):
+    def _clipOther(self, onFull = True):
         logger.debug("clipping other trajectories")
         # we will clip with the bounding box + 50 meters
         scenePolygon = TrajectoryUtils.scenePolygon(
             self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"] + 12) # needed for bikes
         dfs = []
         for otherId in tqdm(self.uniqueOtherIds(), desc=f"clipping other trajectories for scene # {self.sceneId}"):
-            otherDf = self.getOtherDfByUniqueTrackId(otherId)
+            otherDf = self.getOtherDfByUniqueTrackId(otherId, clipped = not onFull)
             clippedDf = TrajectoryUtils.clipByRect(
                 otherDf, "xCenter", "yCenter", "frame", scenePolygon)
             if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:

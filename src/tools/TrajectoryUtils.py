@@ -106,6 +106,8 @@ class TrajectoryUtils:
 
         # find entry and exit point frame number, keep all the points in between and disregard others. A trajectory may enter several times, but we don't need them.
 
+        assert len(pedDf) > 1
+
         entryFrame = -inf
         exitFrame = inf
 
@@ -122,9 +124,11 @@ class TrajectoryUtils:
                     exitFrame = row[frameCol]
                     break
 
+        assert entryFrame != -inf
         # sometimes there are no exit frame. use the last frame
         if exitFrame == inf:
             exitFrame = row[frameCol]
+        
 
         return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
 

@@ -164,10 +164,16 @@ class LocationData:
                     crossingDf = self.getRecordingCrossingDf(recordingData)
                     logger.info(
                         f"got crossing df for {recordingData.recordingId}")
+
                     if "uniqueTrackId" not in crossingDf:
                         raise Exception(
                             f"{recordingData.recordingId} does not have uniqueTrackId")
-                    crossingDfs.append(crossingDf)
+
+                    if len(crossingDf) == 0:
+                        logging.warn("Recording {recordingData.recordingId} has no crossing data!")
+                    else:
+                        crossingDfs.append(crossingDf)
+
                 except Exception as e:
                     logger.warning(
                         f"{recordingData.recordingId} has exception: {e}")
