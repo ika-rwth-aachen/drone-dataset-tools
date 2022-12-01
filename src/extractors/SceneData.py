@@ -346,12 +346,10 @@ class SceneData:
             trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
             if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"] - 1):
                 logging.warn(
-                    f"Disregarding trajectory for {pedId} because the length {trackLength} is too short and rows too short ({len(pedDf)})")
+                    f"Disregarding trajectory for {pedId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
             else:
                 dfs.append(clippedDf)
             
-                
-
         if len(dfs) == 0:
             """No pedData"""
             self._clippedPedData = pd.DataFrame()
@@ -365,6 +363,7 @@ class SceneData:
             self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"] + 12) # needed for bikes
         dfs = []
         for otherId in tqdm(self.uniqueOtherIds(), desc=f"clipping other trajectories for scene # {self.sceneId}"):
+
             otherDf = self.getOtherDfByUniqueTrackId(otherId, clipped = not onFull)
 
             if len(otherDf) == 0: # means not in clipped df
@@ -377,9 +376,12 @@ class SceneData:
 
             clippedDf = TrajectoryUtils.clipByRect(
                 otherDf, "xCenter", "yCenter", "frame", scenePolygon)
-            if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
-                logger.debug(
-                    f"Disregarding trajectory for {otherId} because the length is too low")
+
+            trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
+
+            if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"]):
+                logging.warn(
+                    f"Disregarding trajectory for {otherId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
             else:
                 dfs.append(clippedDf)
 
