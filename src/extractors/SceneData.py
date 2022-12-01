@@ -48,12 +48,10 @@ class SceneData:
 
         self.pedData = pedData
         self._clippedPedData = None
-        self._pedDataLocal = None # refers to the _clippedPedData, but ensures that local dynamics are added
         self._pedIds = None
 
         self.otherData = otherData
         self._clippedOtherData = None
-        self._otherDataLocal = None # refers to the _clippedOtherData, but ensures that local dynamics are added
         self._otherIds = None
         self._sceneTrackMeta = None
 
@@ -65,13 +63,13 @@ class SceneData:
         #     accelerationCols=("xAcceleration", "yAcceleration")
         # )
         # print(len(self.pedData))
+
+        self._isLocalTransformationDone = False
         self._dropWorldCoordinateColumns()
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
         self._trimHeadAndTailForLocal()
         self._clipPed(crossingOffset = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS, onFull=False) # another pass as we had bigger offset to calculate dynamics
-        self._pedDataLocal = self._clippedPedData # because clipping second time creates a new data frame # TODO remove pedDataLocal altogether
-        self._otherDataLocal = self._clippedOtherData # because clipping second time creates a new data frame
         self._buildSceneTrackMeta()
 
     def uniquePedIds(self) -> np.ndarray:
@@ -139,14 +137,18 @@ class SceneData:
 
     def _transformToLocalCoordinates(self):
         logging.debug("transforming trajectories to scene coordinates")
+        if self._isLocalTransformationDone:
+            logging.info("Already transformed")
+            return
 
         # translate and rotate.
         pedDf = self.getClippedPedDfs()
-        self._pedDataLocal = self._transformDfToLocalCoordinates(pedDf)
+        self._transformDfToLocalCoordinates(pedDf)
 
         otherDf = self.getClippedOtherDfs()
-        self._otherDataLocal = self._transformDfToLocalCoordinates(otherDf)
+        self._transformDfToLocalCoordinates(otherDf)
 
+        self._isLocalTransformationDone = True
         pass
 
     def _transformDfToLocalCoordinates(self, df: pd.DataFrame):
@@ -205,12 +207,10 @@ class SceneData:
         """ Must be called before building the scene track meta. It's required as the rolling velocity and acceleration do not have correct data for 4 frames.
         """
         logging.info(f"trimming pedestrian local data for scene {self.sceneId}")
-        self._pedDataLocal = TrajectoryUtils.trimHeadAndTailForAll(self.getPedDataInSceneCoordinates())
-        self._clippedPedData = self._pedDataLocal
+        self._clippedPedData = TrajectoryUtils.trimHeadAndTailForAll(self.getPedDataInSceneCoordinates())
 
         logging.info(f"trimming other local data for scene {self.sceneId}")
-        self._otherDataLocal = TrajectoryUtils.trimHeadAndTailForAll(self.getOtherDataInSceneCoordinates())
-        self._clippedOtherData = self._otherDataLocal
+        self._clippedOtherData = TrajectoryUtils.trimHeadAndTailForAll(self.getOtherDataInSceneCoordinates())
 
 
     def _buildSceneTrackMeta(self):
@@ -284,16 +284,16 @@ class SceneData:
         pass
 
     def getPedDataInSceneCoordinates(self):
-        if self._pedDataLocal is None:
+        if not self._transformToLocalCoordinates:
             self._transformToLocalCoordinates()
 
-        return self._pedDataLocal
+        return self.getClippedPedDfs()
 
     def getOtherDataInSceneCoordinates(self):
-        if self._otherDataLocal is None:
+        if not self._transformToLocalCoordinates:
             self._transformToLocalCoordinates()
 
-        return self._otherDataLocal
+        return self.getClippedOtherDfs()
 
     
     def getOtherByDirection(self, direction: TrackDirection) -> pd.DataFrame:
