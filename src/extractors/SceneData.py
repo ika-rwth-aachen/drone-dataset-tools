@@ -333,6 +333,9 @@ class SceneData:
         for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId, clipped = not onFull)
 
+            if len(pedDf) == 0: # means not in clipped df
+                continue
+
             if len(pedDf) < 3: 
                 logging.warn(f"trajectory is too short ({len(pedDf)}) to be clipped for ped {pedId}")
                 continue
@@ -363,6 +366,15 @@ class SceneData:
         dfs = []
         for otherId in tqdm(self.uniqueOtherIds(), desc=f"clipping other trajectories for scene # {self.sceneId}"):
             otherDf = self.getOtherDfByUniqueTrackId(otherId, clipped = not onFull)
+
+            if len(otherDf) == 0: # means not in clipped df
+                continue
+
+            if len(otherDf) < 3: 
+                logging.warn(f"trajectory is too short ({len(otherDf)}) to be clipped for ped {otherId}")
+                continue
+
+
             clippedDf = TrajectoryUtils.clipByRect(
                 otherDf, "xCenter", "yCenter", "frame", scenePolygon)
             if TrajectoryUtils.length(clippedDf, "xCenter", "yCenter") < self.sceneConfig["roadWidth"]:
