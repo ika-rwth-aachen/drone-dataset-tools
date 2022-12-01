@@ -415,17 +415,20 @@ class SceneData:
         """
             saves clipped dataframes only
         """
+
         fpath = f"{pathPrefix}-scene-{self.sceneId}-pedestrians.csv"
         if os.path.exists(fpath):
             os.remove(fpath)
 
-        self.getPedDataInSceneCoordinates().to_csv(fpath, index=False)
+        exportedAttrs = ["recordingId", "frame", "uniqueTrackId", "sceneId", "roadWidth", "sceneX", "sceneY", "sceneXVelocity", "sceneYVelocity", "sceneXAcceleration", "sceneYAcceleration"]
+        self.getPedDataInSceneCoordinates()[exportedAttrs].to_csv(fpath, index=False)
 
         fpath = f"{pathPrefix}-scene-{self.sceneId}-others.csv"
         if os.path.exists(fpath):
             os.remove(fpath)
 
-        self.getOtherDataInSceneCoordinates().to_csv(fpath, index=False)
+        exportedAttrs = ["recordingId", "frame", "uniqueTrackId", "class", "width", "length", "sceneId", "roadWidth", "sceneX", "sceneY", "sceneXVelocity", "sceneYVelocity", "sceneXAcceleration", "sceneYAcceleration"]
+        self.getOtherDataInSceneCoordinates()[exportedAttrs].to_csv(fpath, index=False)
 
         fpath = f"{pathPrefix}-scene-{self.sceneId}-meta.csv"
         if os.path.exists(fpath):
