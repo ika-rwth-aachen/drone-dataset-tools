@@ -39,6 +39,8 @@ class TrajectoryAnalyzer:
         """
 
         pedDf = sceneData.getPedDataInSceneCoordinates()
+        sceneMeta = sceneData.getMeta()
+        NSpedIds = sceneMeta
 
         # we get trajectories with y-axis
         # Each pedestrian can start near y = 0 or y = maxY

@@ -64,7 +64,7 @@ class SceneData:
         #     velocityCols=("xVelocity", "yVelocity"),
         #     accelerationCols=("xAcceleration", "yAcceleration")
         # )
-        print(len(self.pedData))
+        # print(len(self.pedData))
         self._dropWorldCoordinateColumns()
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
@@ -200,7 +200,7 @@ class SceneData:
 
 
     def _trimHeadAndTailForLocal(self):
-        """ Must be called before building the scene track meta
+        """ Must be called before building the scene track meta. It's required as the rolling velocity and acceleration do not have correct data for 4 frames.
         """
         logging.info(f"trimming pedestrian local data for scene {self.sceneId}")
         self._pedDataLocal = TrajectoryUtils.trimHeadAndTailForAll(self.getPedDataInSceneCoordinates())

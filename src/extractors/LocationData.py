@@ -88,8 +88,8 @@ class LocationData:
         }
 
         for sceneId in self._sceneData.keys():
-            summary[f"scene#{sceneId}"] = self._sceneData[sceneId].clippedPedSize(
-            )
+            summary[f"scene#{sceneId} peds"] = self._sceneData[sceneId].clippedPedSize()
+            summary[f"scene#{sceneId} others"] = self._sceneData[sceneId].clippedOtherSize()
 
         return summary
 
@@ -288,6 +288,7 @@ class LocationData:
             
             if len(pedData) == 0:
                 self._sceneData[sceneId] = None
+                logging.warning(f"location {self.locationId} do not have any pedestrian data for scene {sceneId}!")
             else:
                 sceneConfig = self.getSceneConfig()[str(sceneId)]
                 self._sceneData[sceneId] = SceneData(
