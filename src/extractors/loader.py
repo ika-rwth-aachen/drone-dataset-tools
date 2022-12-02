@@ -57,7 +57,7 @@ class Loader:
         # return ids
         recordingIds = self.locationToRecordingIds[locationId]
         # recordingIds = recordingIds[:1] # TODO for testing
-        recordingIds = [25]
+        # recordingIds = [25]
         return recordingIds
     
 

@@ -113,28 +113,32 @@ class TrajectoryUtils:
         exitFrame = inf
 
         for idx, row in pedDf.iterrows():
+
+            insideRect = rect.contains(Point(row[xCol], row[yCol]))
             if entryFrame == -inf:
                 # check if this row is an entry point
-                if rect.contains(Point(row[xCol], row[yCol])):
+                if insideRect:
                     entryFrame = row[frameCol]
                     continue
 
-            if entryFrame > 0 and exitFrame == inf:
-                # check if this row is an exit point
-                if not rect.contains(Point(row[xCol], row[yCol])):
-                    exitFrame = row[frameCol]
-                    break
+            if entryFrame > 0:
+                if not insideRect:
+                    if exitFrame == inf:
+                        # check if this row is an exit point
+                        # Naive method as the ped can enter again
+                        exitFrame = row[frameCol]
+                        # break
+                else: # we keep looking for more
+                    exitFrame = inf #entered again, so we keep looking
         
         if entryFrame == -inf:
             logging.warn(f"{pedDf.iloc[0]['uniqueTrackId']} has no entry frame in {rect}")
             return None
 
-        assert entryFrame != -inf
         # sometimes there are no exit frame. use the last frame
         if exitFrame == inf:
             exitFrame = row[frameCol]
         
-
         return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
 
     @staticmethod
@@ -308,7 +312,8 @@ class TrajectoryUtils:
     @staticmethod
     def getVelocitySeriesForAll(tracksDf: pd.DataFrame, onCol, fps):
         individualSeres = []
-        for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"deriving velocity on {onCol} at fps {fps}"):
+        # for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"deriving velocity on {onCol} at fps {fps}", position=0):
+        for trackId in tracksDf["uniqueTrackId"].unique():
             aTrack = tracksDf[tracksDf["uniqueTrackId"] == trackId]
             individualSeres.append(
                 TrajectoryUtils.getTimeDerivativeForOne(aTrack, onCol, fps))
@@ -319,7 +324,8 @@ class TrajectoryUtils:
     @staticmethod
     def getAccelerationSeriesForAll(tracksDf: pd.DataFrame, onCol, fps):
         individualSeres = []
-        for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"deriving acceleration on {onCol} at fps {fps}"):
+        # for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"deriving acceleration on {onCol} at fps {fps}", position=0):
+        for trackId in tracksDf["uniqueTrackId"].unique():
             aTrack = tracksDf[tracksDf["uniqueTrackId"] == trackId]
             individualSeres.append(
                 TrajectoryUtils.getTimeDerivativeForOne(aTrack, onCol, fps))
@@ -339,7 +345,8 @@ class TrajectoryUtils:
     @staticmethod
     def trimHeadAndTailForAll(tracksDf: pd.DataFrame):
         trimmedTracks = []
-        for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"trimming trajectories"):
+        # for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"trimming trajectories"):
+        for trackId in tracksDf["uniqueTrackId"].unique():
             aTrack = tracksDf[tracksDf["uniqueTrackId"] == trackId]
             trimmedTracks.append(aTrack.iloc[2: len(aTrack) - 2, :]) # 4 frames to exclude invalid acceleration and velocities
         

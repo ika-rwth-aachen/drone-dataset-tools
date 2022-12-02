@@ -1,12 +1,12 @@
 from extractors.loader import Loader
 from extractors.LocationData import LocationData
 from extractors.SceneData import SceneData
+from .TrajectoryUtils import TrajectoryUtils
 from loguru import logger
 import matplotlib.pyplot as plt
 import os
 import cv2
 import numpy as np
-
 
 class TrajectoryVisualizer:
     """for InD only"""
@@ -44,7 +44,7 @@ class TrajectoryVisualizer:
                 (self.image_height, self.image_width, 3), dtype="uint8")
         self.ax.imshow(self.background_image)
 
-    def plot(self, orthoPxToMeter, tracksDf, style="r", xCol='xCenter', yCol='yCenter'):
+    def plot(self, orthoPxToMeter, tracksDf, style="m", xCol='xCenter', yCol='yCenter'):
         # TODO fixed to scale down factor of inD
         ortho_px_to_meter = orthoPxToMeter * self.scale_down_factor
 
@@ -75,7 +75,7 @@ class TrajectoryVisualizer:
             pedDf = locationData.getCrossingDfByUniqueTrackId(uniqueTrackId)
             self.plot(locationData.orthoPxToMeter, pedDf)
 
-    def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False, showLocal=False, showOthers=False, ids=None):
+    def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False, showLocal=False, showOthers=False, ids=None, offset=None, limit=100):
 
         self.initPlot(
             recordingId=sceneData.pedData.recordingId[0],
@@ -83,8 +83,14 @@ class TrajectoryVisualizer:
             backgroundImagePath=sceneData.backgroundImagePath
         )
 
+        # scene box
+        
+        self.plotSceneBox(sceneData)
+
         # show pedestrians
         uniqueCrossingIds = sceneData.uniquePedIds()
+        if offset is not None:
+            uniqueCrossingIds = uniqueCrossingIds[offset: offset+limit]
         for uniqueTrackId in uniqueCrossingIds:
             if (ids is not None) and (uniqueTrackId not in ids):
                 continue
@@ -94,7 +100,7 @@ class TrajectoryVisualizer:
 
             clippedDf = sceneData.getPedDfByUniqueTrackId(
                 uniqueTrackId, clipped=True)
-            self.plot(sceneData.orthoPxToMeter, clippedDf, style="c:")
+            self.plot(sceneData.orthoPxToMeter, clippedDf, style="c--")
 
             if showLocal:
                 # localDf = sceneData.getPedDataInSceneCorrdinates()
@@ -104,6 +110,9 @@ class TrajectoryVisualizer:
         # show others
         if showOthers:
             uniqueCrossingIds = sceneData.uniqueOtherIds()
+            if offset is not None:
+                uniqueCrossingIds = uniqueCrossingIds[offset: offset+limit]
+
             for uniqueTrackId in uniqueCrossingIds:
                 if (ids is not None) and (uniqueTrackId not in ids):
                     continue
@@ -114,27 +123,42 @@ class TrajectoryVisualizer:
 
                 clippedDf = sceneData.getOtherDfByUniqueTrackId(
                     uniqueTrackId, clipped=True)
-                self.plot(sceneData.orthoPxToMeter, clippedDf, style="y:")
+                self.plot(sceneData.orthoPxToMeter, clippedDf, style="y")
 
                 if showLocal:
                     # localDf = sceneData.getPedDataInSceneCorrdinates()
                     self.plot(sceneData.orthoPxToMeter, clippedDf,
                               style="w", xCol='sceneX', yCol='sceneY')
 
-        # plot scene bounding box
+
+    
+    def plotSceneBox(self, sceneData: SceneData):
+        
+        # plot scene bounding box before dynamics
         ortho_px_to_meter = sceneData.orthoPxToMeter * self.scale_down_factor
-        (X, Y) = sceneData.polygon.exterior.xy
+        outerPolygon = TrajectoryUtils.scenePolygon(sceneData.sceneConfig, sceneData.sceneConfig["boxWidth"], sceneData.sceneConfig["roadWidth"] + sceneData.CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS)
+        (X, Y) = outerPolygon.exterior.xy
         X = np.array(X)
         Y = np.array(Y)
         X /= ortho_px_to_meter
         Y /= -ortho_px_to_meter
-        self.ax.plot(X, Y, "lime")
+        self.ax.plot(X, Y, "cornsilk")
+
+        # plot scene bounding box
+        ortho_px_to_meter = sceneData.orthoPxToMeter * self.scale_down_factor
+        innerPolygon = TrajectoryUtils.scenePolygon(sceneData.sceneConfig, sceneData.sceneConfig["boxWidth"], sceneData.sceneConfig["roadWidth"] + sceneData.CROSSING_CLIP_OFFSET_AFTER_DYNAMICS)
+        (X, Y) = innerPolygon.exterior.xy
+        X = np.array(X)
+        Y = np.array(Y)
+        X /= ortho_px_to_meter
+        Y /= -ortho_px_to_meter
+        self.ax.plot(X, Y, "cornsilk")
 
         # plot scene center
 
         X = [sceneData.centerX / ortho_px_to_meter]
         Y = [sceneData.centerY / -ortho_px_to_meter]
-        self.ax.plot(X, Y, marker='o', markersize=10,
+        self.ax.plot(X, Y, marker='o', markersize=7,
                      markerfacecolor="yellow", markeredgecolor="black")
 
     def showLocalTrajectories(self, df, idCol, xCol, yCol):

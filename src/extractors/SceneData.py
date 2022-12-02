@@ -9,7 +9,7 @@ from .config import *
 from .TrackDirection import TrackDirection
 import os
 from dill import dump, load
-from typing import List, Tuple
+from typing import List, Tuple, Set
 import logging
 
 # from tools.TrajectoryAnalyzer import TrajectoryAnalyzer
@@ -41,8 +41,8 @@ class SceneData:
         orthoPxToMeter,
         sceneId,
         sceneConfig,
-        boxWidth,
-        boxHeight,
+        boxWidth, # TODO unused in clipping. remove
+        boxHeight, # TODO unused in clipping. remove
         pedData: pd.DataFrame,
         otherData: pd.DataFrame,
         backgroundImagePath=None
@@ -57,10 +57,10 @@ class SceneData:
         self.angle = sceneConfig["angle"]
         self.backgroundImagePath = backgroundImagePath
 
-        self.boxWidth = boxWidth
-        self.boxHeight = boxHeight
+        # self.boxWidth = boxWidth
+        # self.boxHeight = boxHeight
         self.polygon = TrajectoryUtils.scenePolygon(
-            sceneConfig, boxWidth, boxHeight)
+            sceneConfig, boxWidth, boxHeight) # unused execpt visualizer
 
         self.pedData = pedData
         self._clippedPedData = None
@@ -80,8 +80,13 @@ class SceneData:
         # )
         # print(len(self.pedData))
 
+        self.CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS = CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS
+        self.CROSSING_CLIP_OFFSET_AFTER_DYNAMICS = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS
+
         self._isLocalTransformationDone = False
         self._isLocalInfomationBuilt = False
+
+        self.warnings = []
         
     
     def buildLocalInformation(self):
@@ -92,11 +97,23 @@ class SceneData:
         self._dropWorldCoordinateColumns()
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
-        # self._trimHeadAndTailForLocal()
-        # self._clipPed(crossingOffset = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS, onFull=False) # another pass as we had bigger offset to calculate dynamics
-        # self._buildSceneTrackMeta()
+        
+        self._trimHeadAndTailForLocal()
+
+        idsBefore = self.uniqueClippedPedIds()
+        self._clipPed(crossingOffset = self.CROSSING_CLIP_OFFSET_AFTER_DYNAMICS, onFull=False) # another pass as we had bigger offset to calculate dynamics
+        idsAfter = self.uniqueClippedPedIds()
+
+        idDiff = idsBefore - idsAfter
+        if len(idDiff) > 0:
+            self.warnings.append(f"Clipping after trimming lost {len(idDiff)} pedestrian tracks: {(idDiff)}")
+            
+
+        self._buildSceneTrackMeta()
 
         self._isLocalInfomationBuilt = True
+
+        print("\n".join(self.warnings))
         pass
 
     def uniquePedIds(self) -> np.ndarray:
@@ -105,10 +122,10 @@ class SceneData:
 
         return self._pedIds
 
-    def uniqueClippedPedIds(self) -> np.ndarray:
+    def uniqueClippedPedIds(self) -> Set[int]:
         clippedDf = self.getClippedPedDfs()
         if len(clippedDf) > 0:
-            return clippedDf.uniqueTrackId.unique()
+            return set(clippedDf.uniqueTrackId.unique())
         return []
 
     def uniqueOtherIds(self) -> np.ndarray:
@@ -117,10 +134,10 @@ class SceneData:
 
         return self._otherIds
 
-    def uniqueClippedOtherIds(self) -> np.ndarray:
+    def uniqueClippedOtherIds(self) -> Set[int]:
         clippedDf = self.getClippedOtherDfs()
         if len(clippedDf) > 0:
-            return clippedDf.uniqueTrackId.unique()
+            return set(clippedDf.uniqueTrackId.unique())
         return []
 
     def filterByIds(self, df: pd.DataFrame, uniqueTrackIds: List[int]) -> pd.DataFrame:
@@ -215,29 +232,49 @@ class SceneData:
         """speed can be negative or positive based on direction
         """
 
-        logging.info(f"adding pedestrian local dynamics for scene {self.sceneId}")
+        logging.info(f"adding dynamics for scene {self.sceneId}")
+
+        logging.debug(f"adding pedestrian local dynamics for scene {self.sceneId}")
         self._addLocalDynamicsForDf(self.getPedDataInSceneCoordinates())
 
-        logging.info(f"adding other local dynamics for scene {self.sceneId}")
+        logging.debug(f"adding other local dynamics for scene {self.sceneId}")
         self._addLocalDynamicsForDf(self.getOtherDataInSceneCoordinates())
 
         pass
 
     def _addLocalDynamicsForDf(self, df: pd.DataFrame):
-        df["sceneXVelocity"] = TrajectoryUtils.getVelocitySeriesForAll(df, "sceneX", FPS)
-        df["sceneYVelocity"] = TrajectoryUtils.getVelocitySeriesForAll(df, "sceneY", FPS)
-        df["sceneXAcceleration"] = TrajectoryUtils.getAccelerationSeriesForAll(df, "sceneXVelocity", FPS)
-        df["sceneYAcceleration"] = TrajectoryUtils.getAccelerationSeriesForAll(df, "sceneYVelocity", FPS)
+        df["sceneXVelocity"] = TrajectoryUtils.getVelocitySeriesForAll(df, "sceneX", self.fps)
+        df["sceneYVelocity"] = TrajectoryUtils.getVelocitySeriesForAll(df, "sceneY", self.fps)
+        df["sceneXAcceleration"] = TrajectoryUtils.getAccelerationSeriesForAll(df, "sceneXVelocity", self.fps)
+        df["sceneYAcceleration"] = TrajectoryUtils.getAccelerationSeriesForAll(df, "sceneYVelocity", self.fps)
 
 
     def _trimHeadAndTailForLocal(self):
         """ Must be called before building the scene track meta. It's required as the rolling velocity and acceleration do not have correct data for 4 frames.
         """
-        logging.info(f"trimming pedestrian local data for scene {self.sceneId}")
+        
+        idsBefore = self.uniqueClippedPedIds()
+        idsBeforeOther = self.uniqueClippedOtherIds()
+
+        logging.debug(f"trimming for scene {self.sceneId}")
+        
+
+        logging.debug(f"trimming pedestrian local data for scene {self.sceneId}")
         self._clippedPedData = TrajectoryUtils.trimHeadAndTailForAll(self.getPedDataInSceneCoordinates())
 
-        logging.info(f"trimming other local data for scene {self.sceneId}")
+        logging.debug(f"trimming other local data for scene {self.sceneId}")
         self._clippedOtherData = TrajectoryUtils.trimHeadAndTailForAll(self.getOtherDataInSceneCoordinates())
+
+        idsAfter = self.uniqueClippedPedIds()
+        idsAfterOther = self.uniqueClippedOtherIds()
+
+        idDiff = idsBefore - idsAfter
+        if len(idDiff) > 0:
+            self.warnings.append(f"Trimming after dynamics lost {len(idDiff)} pedestrian tracks: {(idDiff)}")
+
+        idDiff = idsBeforeOther - idsAfterOther
+        if len(idDiff) > 0:
+            self.warnings.append(f"Trimming after dynamics lost {len(idDiff)} other tracks: {(idDiff)}")
 
 
     def _buildSceneTrackMeta(self):
@@ -273,7 +310,7 @@ class SceneData:
             trackDf = df[df["uniqueTrackId"] == trackId]
             # print(trackId, len(trackDf))
             firstRow = trackDf.iloc[0]
-            lastRow = trackDf.iloc[1]
+            lastRow = trackDf.iloc[-1]
 
             vert, hort = TrajectoryUtils.getTrack_VH_Directions(
                 trackDf, "sceneX", "sceneY")
@@ -351,13 +388,13 @@ class SceneData:
 
     # region clipping
 
-    def _clipPed(self, crossingOffset = CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS, onFull = True):
+    def _clipPed(self, crossingOffset, onFull = True):
         
         logger.debug("clipping trajectories")
         scenePolygon = TrajectoryUtils.scenePolygon(
             self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + crossingOffset)
 
-        logging.info(f"clipping trajectories with scene polygon {scenePolygon}")
+        # logging.info(f"clipping trajectories with scene polygon {scenePolygon}")
         dfs = []
         for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId, clipped = not onFull)
@@ -366,20 +403,24 @@ class SceneData:
                 continue
 
             if len(pedDf) < 3: 
-                logging.warn(f"trajectory is too short ({len(pedDf)}) to be clipped for ped {pedId}")
+                logging.debug(f"trajectory is too short ({len(pedDf)}) to be clipped for ped {pedId}")
+                self.warnings.append(f"trajectory is too short ({len(pedDf)}) to be clipped for ped {pedId}")
                 continue
 
             clippedDf = TrajectoryUtils.clipByRect(
                 pedDf, "xCenter", "yCenter", "frame", scenePolygon)
 
             if clippedDf is None:
-                logging.warn(f"No clipped trajectory for ped {pedId}")
-                raise Exception(f"No clipped trajectory for ped {pedId}")
+                logging.debug(f"No clipped trajectory for ped {pedId}")
+                # raise Exception(f"No clipped trajectory for ped {pedId}")
+                self.warnings.append(f"ERROR: No clipped trajectory for ped {pedId}")
 
             trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
             if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"] - 1):
-                logging.warn(
-                    f"Disregarding trajectory for {pedId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
+                logging.debug(
+                    f"Disregarding for {pedId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
+                self.warnings.append(
+                    f"Disregarding for {pedId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
             else:
                 dfs.append(clippedDf)
             
@@ -403,7 +444,8 @@ class SceneData:
                 continue
 
             if len(otherDf) < 3: 
-                logging.warn(f"trajectory is too short ({len(otherDf)}) to be clipped for ped {otherId}")
+                logging.debug(f"trajectory is too short ({len(otherDf)}) to be clipped for ped {otherId}")
+                self.warnings.append(f"trajectory is too short ({len(otherDf)}) to be clipped for ped {otherId}")
                 continue
 
 
@@ -411,14 +453,16 @@ class SceneData:
                 otherDf, "xCenter", "yCenter", "frame", scenePolygon)
 
             if clippedDf is None:
-                logging.warn(f"No clipped trajectory for other {otherId}")
-                raise Exception(f"No clipped trajectory for other {otherId}")
+                logging.debug(f"No clipped trajectory for other {otherId}")
+                self.warnings.append(f"No clipped trajectory for other {otherId}")
 
             trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
 
             if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"]):
-                logging.warn(
-                    f"Disregarding trajectory for {otherId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
+                logging.debug(
+                    f"Disregarding {otherId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
+                self.warnings.append(
+                    f"Disregarding {otherId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
             else:
                 dfs.append(clippedDf)
 
@@ -430,7 +474,7 @@ class SceneData:
 
     def getClippedPedDfs(self):
         if self._clippedPedData is None:
-            self._clipPed()
+            self._clipPed(crossingOffset = self.CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS)
 
         return self._clippedPedData
 
