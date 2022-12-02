@@ -17,7 +17,23 @@ import logging
 
 class SceneData:
     """SceneData only has crossing trajectories.
+
     """
+
+    # @staticmethod
+    # def create(
+    #     self,
+    #     locationId,
+    #     orthoPxToMeter,
+    #     sceneId,
+    #     sceneConfig,
+    #     boxWidth,
+    #     boxHeight,
+    #     pedData: pd.DataFrame,
+    #     otherData: pd.DataFrame,
+    #     backgroundImagePath=None
+    # ):
+
 
     def __init__(
         self,
@@ -65,12 +81,23 @@ class SceneData:
         # print(len(self.pedData))
 
         self._isLocalTransformationDone = False
+        self._isLocalInfomationBuilt = False
+        
+    
+    def buildLocalInformation(self):
+
+        if self._isLocalInfomationBuilt:
+            return
+
         self._dropWorldCoordinateColumns()
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
-        self._trimHeadAndTailForLocal()
-        self._clipPed(crossingOffset = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS, onFull=False) # another pass as we had bigger offset to calculate dynamics
-        self._buildSceneTrackMeta()
+        # self._trimHeadAndTailForLocal()
+        # self._clipPed(crossingOffset = CROSSING_CLIP_OFFSET_AFTER_DYNAMICS, onFull=False) # another pass as we had bigger offset to calculate dynamics
+        # self._buildSceneTrackMeta()
+
+        self._isLocalInfomationBuilt = True
+        pass
 
     def uniquePedIds(self) -> np.ndarray:
         if self._pedIds is None:
@@ -329,6 +356,8 @@ class SceneData:
         logger.debug("clipping trajectories")
         scenePolygon = TrajectoryUtils.scenePolygon(
             self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + crossingOffset)
+
+        logging.info(f"clipping trajectories with scene polygon {scenePolygon}")
         dfs = []
         for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId, clipped = not onFull)
@@ -342,6 +371,10 @@ class SceneData:
 
             clippedDf = TrajectoryUtils.clipByRect(
                 pedDf, "xCenter", "yCenter", "frame", scenePolygon)
+
+            if clippedDf is None:
+                logging.warn(f"No clipped trajectory for ped {pedId}")
+                raise Exception(f"No clipped trajectory for ped {pedId}")
 
             trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
             if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"] - 1):
@@ -376,6 +409,10 @@ class SceneData:
 
             clippedDf = TrajectoryUtils.clipByRect(
                 otherDf, "xCenter", "yCenter", "frame", scenePolygon)
+
+            if clippedDf is None:
+                logging.warn(f"No clipped trajectory for other {otherId}")
+                raise Exception(f"No clipped trajectory for other {otherId}")
 
             trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
 

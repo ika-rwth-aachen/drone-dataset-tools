@@ -18,7 +18,7 @@ class LocationData:
         locationId, 
         recordingIds, 
         recordingDataList, 
-        useSceneConfigToExtract=False, 
+        useSceneConfigToExtract=True, 
         precomputeSceneData=True,
         backgroundImagePath = None
     ):
@@ -232,6 +232,23 @@ class LocationData:
                 sceneConfig["boxWidth"], 
                 sceneConfig["roadWidth"]
             )
+    
+    def buildLocalInformationForScenes(self):
+        sceneConfigs = self.getSceneConfig()
+        sceneIds = list(sceneConfigs.keys())
+
+        for sceneId in sceneIds:
+            logger.info(f"Precomputing sceneData for {sceneId}")
+            sceneConfig = sceneConfigs[sceneId]
+            sceneData = self.getSceneData(
+                sceneId, 
+                sceneConfig["boxWidth"], 
+                sceneConfig["roadWidth"]
+            ) # just to be save if precomputation was not done
+
+            sceneData.buildLocalInformation()
+
+
 
     def getSceneConfig(self):
         return UnitUtils.getLocationSceneConfigs("ind", self.locationId)

@@ -78,6 +78,12 @@ Aggregation over recording data of a location. Crossing data in a location can b
 1. By annotation: if the dataset has crossing annotation for pedestrian, this approach is fast 
 2. By scene config: A scene config defines a bounding box, the pedestrian trajectories that have overlap with the bounding boxes are considerred crossing ones. This is prone to errors if a pedestrian does not cross the road (just walks along the road).
 
+**Bulding location data will all scene annotations"
+```
+loc2data = loader.getLocationData(2)
+loc2data.buildLocalInformationForScenes() # builds the local coordinate data.
+```
+
 **get all the unique crossing ids**
 ```
 loc2data = loader.getLocationData(2)
@@ -96,9 +102,16 @@ crossingDf = loc2data.getCrossingDf()
 We have different types of preprocessed data and formats. For all the examples please go through the notebook:
 [Reading from preprocessed data](../src/notebooks/read-from-preprocessed.ipynb)
 ```
+loc2data = loader.getLocationData(2, useSceneConfigToExtract=True) by scene config
+loc2data.buildLocalInformationForScenes() # builds the local coordinate data.
+
 loc2data.saveCrossingDf("../data") # only crossing dataframes. 
 loc2data.save("../data") # whole thing as a dill object. 
+loc2data.saveSceneDataOnly("../data")
+
+# loading data
 loc2dataFromFile = LocationData.load("../data/location-2", "dill file name")
+
 ```
 
 # SceneData
@@ -109,9 +122,12 @@ This class holds the data of a scene. The purpose of this class is to crop traje
 
 **Extracting ccene data from location data**
 ```
-  SceneData = loc2data.getSceneData(1, 10, 5, refresh=False)
+  sceneData = loc2data.getSceneData(1, 10, 5, refresh=False)
+  sceneData.buildLocalInformation() # Optional. see notes below.
   visualizer.showLocationSceneData(SceneData, showLocal=True)
 ```
+
+If you didn't call **buildLocalInformationForScenes()** on location data object, you will need to call buildLocalInformation on the sceneData object. Otherwise, no information on scene coordinates system will be generated.
 
 **Get clipped trajectories**
 Vehicle trajectories are clipped by about 50 meter + bounding box width. Can be changed by setting **OTHER_CLIP_LENGTH** constant in the SceneData class

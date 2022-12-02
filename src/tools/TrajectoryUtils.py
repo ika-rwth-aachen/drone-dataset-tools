@@ -8,6 +8,7 @@ import numpy as np
 from math import sqrt, inf, cos, sin, radians
 from typing import List, Tuple
 import vg
+import logging
 
 
 class TrajectoryUtils:
@@ -106,7 +107,7 @@ class TrajectoryUtils:
 
         # find entry and exit point frame number, keep all the points in between and disregard others. A trajectory may enter several times, but we don't need them.
 
-        assert len(pedDf) > 1
+        # assert len(pedDf) > 1
 
         entryFrame = -inf
         exitFrame = inf
@@ -123,6 +124,10 @@ class TrajectoryUtils:
                 if not rect.contains(Point(row[xCol], row[yCol])):
                     exitFrame = row[frameCol]
                     break
+        
+        if entryFrame == -inf:
+            logging.warn(f"{pedDf.iloc[0]['uniqueTrackId']} has no entry frame in {rect}")
+            return None
 
         assert entryFrame != -inf
         # sometimes there are no exit frame. use the last frame
