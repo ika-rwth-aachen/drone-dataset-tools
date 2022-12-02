@@ -9,8 +9,10 @@ from extractors.loader import Loader
 dataDir = "E:/Datasets/inD-dataset-v1.0/data/" # path to the InD data directory
 loader = Loader(dataDir, 'inD')
 loc2data = loader.getLocationData(2, useSceneConfigToExtract=True)
+loc2data.buildLocalInformationForScenes() # data in scene coordinate system
 loc2data.saveCrossingDf("../data") # only crossing dataframes
 loc2data.save("../data") # whole thing as a dill object
+loc2data.saveSceneDataOnly("../data") # individual scenes
 ```
 
 You will find several data files prefixed with the date.
