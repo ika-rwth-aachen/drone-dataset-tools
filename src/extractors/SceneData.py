@@ -180,9 +180,9 @@ class SceneData:
         logger.debug(
             "Dropping , lonVelocity, latVelocity, lonAcceleration, latAcceleration")
         self.pedData = self.pedData.drop(
-            ["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
+            ["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1, errors="ignore")
         self.otherData = self.otherData.drop(
-            ["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1)
+            ["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1, errors="ignore")
 
     def _transformToLocalCoordinates(self):
         logging.debug("transforming trajectories to scene coordinates")
@@ -395,13 +395,13 @@ class SceneData:
 
     def _clipTrack(self, trackDf: pd.DataFrame, scenePolygon:box, minLength: float, metaClass:str) -> pd.DataFrame:
 
-            trackId = trackDf.head(1)["uniqueTrackId"].iloc[0]
-            clippedDf = None
-
             if len(trackDf) == 0: # means not in clipped df
                 return None
 
-            elif len(trackDf) < 3: 
+            trackId = trackDf.head(1)["uniqueTrackId"].iloc[0]
+            clippedDf = None
+
+            if len(trackDf) < 3: 
                 logging.debug(f"{metaClass} {trackId}: trajectory is too short ({len(trackDf)}) to be clipped")
                 self.warnings.append(f"{metaClass} {trackId}: trajectory is too short ({len(trackDf)}) to be clipped")
             else:

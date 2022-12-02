@@ -136,7 +136,7 @@ class TrajectoryUtils:
         
         if entryFrame == -inf:
             logging.warn(f"{pedDf.iloc[0]['uniqueTrackId']} has no entry frame in {rect}")
-            return None
+            return None, 0
 
         # sometimes there are no exit frame. use the last frame
         if exitFrame == inf:
