@@ -139,11 +139,56 @@ class TrajectoryUtils:
             return None, 0
 
         # sometimes there are no exit frame. use the last frame
-        if exitFrame == inf:
+        if entryFrame > 0 and exitFrame == inf:
             exitFrame = row[frameCol]
             exitCount += 1
         
         return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)], exitCount
+
+    @staticmethod
+    def clipByRectMultiple(trackDf, xCol, yCol, frameCol, rect) -> List[pd.DataFrame]:
+        """ For multiple entries, we return a list"""
+
+        # find entry and exit point frame number, keep all the points in between and disregard others. A trajectory may enter several times, but we don't need them.
+
+        # assert len(pedDf) > 1
+
+        brokenTracks = []
+
+        entryFrame = -inf
+        exitFrame = inf
+
+
+        for idx, row in trackDf.iterrows():
+
+            insideRect = rect.contains(Point(row[xCol], row[yCol]))
+            if entryFrame == -inf:
+                # check if this row is an entry point
+                if insideRect:
+                    entryFrame = row[frameCol]
+                    continue
+
+            if entryFrame > 0:
+                if not insideRect:
+                    if exitFrame == inf:
+                        # check if this row is an exit point
+                        # Naive method as the ped can enter again
+                        exitFrame = row[frameCol]
+                        choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)]
+                        brokenTracks.append(choppedDf)
+
+                        # reset
+                        entryFrame = -inf
+                        exitFrame = inf
+
+        
+        # sometimes there are no exit frame. use the last frame
+        if entryFrame > 0 and exitFrame == inf:
+            exitFrame = row[frameCol]
+            choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)]
+            brokenTracks.append(choppedDf)
+        
+        return brokenTracks
 
     @staticmethod
     def getTranslationMatrix(localCenterPosition: Point) -> List[float]:

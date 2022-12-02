@@ -99,6 +99,9 @@ class SceneData:
             return
 
         self._dropWorldCoordinateColumns()
+        self.reClip() # enables rebuilding
+        self.appendSceneIdToClipped()
+
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
         
@@ -488,6 +491,18 @@ class SceneData:
             self._clippedOtherData = pd.DataFrame()
         else:
             self._clippedOtherData = pd.concat(dfs, ignore_index=True)
+
+    def reClip(self):
+        self._clipPed(crossingOffset = self.CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS)
+        self._clipOther()
+
+    def appendSceneIdToClipped(self):
+        clippedDf = self.getClippedPedDfs()
+        clippedDf["uniqueTrackId"] = self.sceneId * 10000000 + clippedDf["uniqueTrackId"] 
+        
+        clippedDf = self.getClippedOtherDfs()
+        clippedDf["uniqueTrackId"] = self.sceneId * 10000000 + clippedDf["uniqueTrackId"] 
+
 
     def getClippedPedDfs(self):
         if self._clippedPedData is None:
