@@ -102,8 +102,8 @@ class TrajectoryUtils:
         return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
 
     @staticmethod
-    def clipByRect(pedDf, xCol, yCol, frameCol, rect) -> pd.DataFrame:
-        """ Clip the trajectory with 150% rect clipping. """
+    def clipByRect(pedDf, xCol, yCol, frameCol, rect) -> Tuple[pd.DataFrame, int]:
+        """ Clip the trajectory with 150% rect clipping. Returns how many times the trajectory exitted the scene """
 
         # find entry and exit point frame number, keep all the points in between and disregard others. A trajectory may enter several times, but we don't need them.
 
@@ -111,6 +111,8 @@ class TrajectoryUtils:
 
         entryFrame = -inf
         exitFrame = inf
+
+        exitCount = 0
 
         for idx, row in pedDf.iterrows():
 
@@ -127,6 +129,7 @@ class TrajectoryUtils:
                         # check if this row is an exit point
                         # Naive method as the ped can enter again
                         exitFrame = row[frameCol]
+                        exitCount += 1
                         # break
                 else: # we keep looking for more
                     exitFrame = inf #entered again, so we keep looking
@@ -138,8 +141,9 @@ class TrajectoryUtils:
         # sometimes there are no exit frame. use the last frame
         if exitFrame == inf:
             exitFrame = row[frameCol]
+            exitCount += 1
         
-        return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)]
+        return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)], exitCount
 
     @staticmethod
     def getTranslationMatrix(localCenterPosition: Point) -> List[float]:
