@@ -118,6 +118,7 @@ class SceneData:
         self._isLocalInfomationBuilt = True
 
         print("\n".join(self.warnings))
+        print(self.problematicIds)
         pass
 
     def uniquePedIds(self) -> np.ndarray:
@@ -394,7 +395,7 @@ class SceneData:
 
     def _clipTrack(self, trackDf: pd.DataFrame, scenePolygon:box, minLength: float, metaClass:str) -> pd.DataFrame:
 
-            trackId = trackDf.head(1)["uniqueTrackId"][0]
+            trackId = trackDf.head(1)["uniqueTrackId"].iloc[0]
             clippedDf = None
 
             if len(trackDf) == 0: # means not in clipped df
@@ -454,34 +455,6 @@ class SceneData:
             if clippedDf is not None:
                 dfs.append(clippedDf)
 
-            # if len(pedDf) == 0: # means not in clipped df
-            #     continue
-
-            # if len(pedDf) < 3: 
-            #     logging.debug(f"trajectory is too short ({len(pedDf)}) to be clipped for ped {pedId}")
-            #     self.warnings.append(f"trajectory is too short ({len(pedDf)}) to be clipped for ped {pedId}")
-            #     continue
-
-            # clippedDf, exitCount = TrajectoryUtils.clipByRect(
-            #     pedDf, "xCenter", "yCenter", "frame", scenePolygon)
-
-            # if clippedDf is None:
-            #     logging.debug(f"No clipped trajectory for ped {pedId}")
-            #     # raise Exception(f"No clipped trajectory for ped {pedId}")
-            #     self.warnings.append(f"ERROR: No clipped trajectory for ped {pedId}")
-            
-            # if exitCount > 1:
-            #     self.warnings.append(f"ped {pedId} enters the scene {exitCount} times")
-
-
-            # trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
-            # if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"] - 1):
-            #     logging.debug(
-            #         f"Disregarding for {pedId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
-            #     self.warnings.append(
-            #         f"Disregarding for {pedId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
-            # else:
-            #     dfs.append(clippedDf)
             
         if len(dfs) == 0:
             """No pedData"""
@@ -509,34 +482,6 @@ class SceneData:
             if clippedDf is not None:
                 dfs.append(clippedDf)
 
-            # if len(otherDf) == 0: # means not in clipped df
-            #     continue
-
-            # if len(otherDf) < 3: 
-            #     logging.debug(f"trajectory is too short ({len(otherDf)}) to be clipped for ped {otherId}")
-            #     self.warnings.append(f"trajectory is too short ({len(otherDf)}) to be clipped for ped {otherId}")
-            #     continue
-
-
-            # clippedDf, exitCount = TrajectoryUtils.clipByRect(
-            #     otherDf, "xCenter", "yCenter", "frame", scenePolygon)
-
-            # if clippedDf is None:
-            #     logging.debug(f"No clipped trajectory for other {otherId}")
-            #     self.warnings.append(f"No clipped trajectory for other {otherId}")
-
-            # if exitCount > 1:
-            #     self.warnings.append(f"other {otherId} enters the scene {exitCount} times")
-
-            # trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
-
-            # if (len(clippedDf) < 3) or (trackLength < self.sceneConfig["roadWidth"]):
-            #     logging.debug(
-            #         f"Disregarding {otherId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
-            #     self.warnings.append(
-            #         f"Disregarding {otherId} because the length {trackLength} is too short and rows too short ({len(clippedDf)})")
-            # else:
-            #     dfs.append(clippedDf)
 
         if len(dfs) == 0:
             """No pedData"""
