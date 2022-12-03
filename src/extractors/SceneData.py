@@ -100,7 +100,7 @@ class SceneData:
 
         self._dropWorldCoordinateColumns()
         self.reClip() # enables rebuilding
-        self.appendSceneIdToClipped()
+        # self.appendSceneIdToClipped()
 
         self._transformToLocalCoordinates()
         self._addLocalDynamics()
