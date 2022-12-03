@@ -123,7 +123,7 @@ class SceneData:
         self._isLocalInfomationBuilt = True
 
         print("\n".join(self.warnings))
-        print(self.problematicIds)
+        print("problematic tracks:", self.problematicIds)
         pass
 
     def uniquePedIds(self) -> np.ndarray:
