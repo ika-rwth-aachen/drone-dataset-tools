@@ -501,10 +501,10 @@ class SceneData:
 
     def appendSceneIdToClipped(self):
         clippedDf = self.getClippedPedDfs()
-        clippedDf["uniqueTrackId"] = self.sceneId * 10000000 + clippedDf["uniqueTrackId"] 
+        clippedDf["uniqueTrackId"] = int(self.sceneId) * 10000000 + clippedDf["uniqueTrackId"] 
 
         clippedDf = self.getClippedOtherDfs()
-        clippedDf["uniqueTrackId"] = self.sceneId * 10000000 + clippedDf["uniqueTrackId"] 
+        clippedDf["uniqueTrackId"] = int(self.sceneId) * 10000000 + clippedDf["uniqueTrackId"] 
 
 
     def getClippedPedDfs(self):
