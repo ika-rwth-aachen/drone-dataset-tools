@@ -108,6 +108,8 @@ class SceneData:
         self._trimHeadAndTailForLocal()
 
         idsBefore = self.uniqueClippedPedIds()
+        
+        logging.info(f"Scene {self.sceneId}: clipping trimmed data")
         self._clipPed(crossingOffset = self.CROSSING_CLIP_OFFSET_AFTER_DYNAMICS, onFull=False) # another pass as we had bigger offset to calculate dynamics
         idsAfter = self.uniqueClippedPedIds()
 
@@ -134,7 +136,7 @@ class SceneData:
         clippedDf = self.getClippedPedDfs()
         if len(clippedDf) > 0:
             return set(clippedDf.uniqueTrackId.unique())
-        return []
+        return set([])
 
     def uniqueOtherIds(self) -> np.ndarray:
         if self._otherIds is None:
@@ -146,7 +148,7 @@ class SceneData:
         clippedDf = self.getClippedOtherDfs()
         if len(clippedDf) > 0:
             return set(clippedDf.uniqueTrackId.unique())
-        return []
+        return set([])
 
     def filterByIds(self, df: pd.DataFrame, uniqueTrackIds: List[int]) -> pd.DataFrame:
         criterion = df['uniqueTrackId'].map(
@@ -188,7 +190,7 @@ class SceneData:
             ["lonVelocity", "latVelocity", "lonAcceleration", "latAcceleration"], axis=1, errors="ignore")
 
     def _transformToLocalCoordinates(self):
-        logging.debug("transforming trajectories to scene coordinates")
+        logging.info(f"Scene {self.sceneId}: transforming trajectories to scene coordinates")
         if self._isLocalTransformationDone:
             logging.info("Already transformed")
             return
@@ -240,7 +242,7 @@ class SceneData:
         """speed can be negative or positive based on direction
         """
 
-        logging.info(f"adding dynamics for scene {self.sceneId}")
+        logging.info(f"Scene {self.sceneId}: adding dynamics")
 
         logging.debug(f"adding pedestrian local dynamics for scene {self.sceneId}")
         self._addLocalDynamicsForDf(self.getPedDataInSceneCoordinates())
@@ -260,11 +262,10 @@ class SceneData:
     def _trimHeadAndTailForLocal(self):
         """ Must be called before building the scene track meta. It's required as the rolling velocity and acceleration do not have correct data for 4 frames.
         """
+        logging.info(f"Scene {self.sceneId}: trimming head and tail")
         
         idsBefore = self.uniqueClippedPedIds()
         idsBeforeOther = self.uniqueClippedOtherIds()
-
-        logging.debug(f"trimming for scene {self.sceneId}")
         
 
         logging.debug(f"trimming pedestrian local data for scene {self.sceneId}")
@@ -286,6 +287,7 @@ class SceneData:
 
 
     def _buildSceneTrackMeta(self):
+        logging.info(f"Scene {self.sceneId}: building clipped track meta")
 
         pedDf = self.getPedDataInSceneCoordinates()
         otherDf = self.getOtherDataInSceneCoordinates()
@@ -493,13 +495,14 @@ class SceneData:
             self._clippedOtherData = pd.concat(dfs, ignore_index=True)
 
     def reClip(self):
+        logging.info(f"Scene {self.sceneId}: clipping original data")
         self._clipPed(crossingOffset = self.CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS)
         self._clipOther()
 
     def appendSceneIdToClipped(self):
         clippedDf = self.getClippedPedDfs()
         clippedDf["uniqueTrackId"] = self.sceneId * 10000000 + clippedDf["uniqueTrackId"] 
-        
+
         clippedDf = self.getClippedOtherDfs()
         clippedDf["uniqueTrackId"] = self.sceneId * 10000000 + clippedDf["uniqueTrackId"] 
 
