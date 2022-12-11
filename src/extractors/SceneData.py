@@ -431,6 +431,12 @@ class SceneData:
                         self.warnings.append(
                             f"{metaClass} {trackId}: Disregarding as the length {trackLength} is too short or rows too less ({len(clippedDf)})")
                         clippedDf = None
+                    elif trackLength > (minLength * 2):
+                        logging.warn(
+                            f"{metaClass} {trackId}: Disregarding as the length {trackLength} is too long)")
+                        self.warnings.append(
+                            f"{metaClass} {trackId}: Disregarding as the length {trackLength} is too long")
+                        clippedDf = None
 
                         
             if clippedDf is None:
