@@ -192,13 +192,16 @@ class TrajectoryUtils:
 
     @staticmethod
     def getTranslationMatrix(localCenterPosition: Point) -> List[float]:
+        """
+        returns translatyion matrix wrt 0,0, not local coordinate system in shapely format.
+        """
 
         return [1, 0, 0, 1, -localCenterPosition.x, -localCenterPosition.y]
 
     @staticmethod
     def getRotationMatrix(localCenterRotation) -> List[float]:
         """
-        returns rotationMatrix wrt 0,0, not local coordinate system.
+        returns rotationMatrix wrt 0,0, not local coordinate system in shapely format.
         """
         rotInRad = -radians(localCenterRotation)
         costTheta = cos(rotInRad)
@@ -207,9 +210,70 @@ class TrajectoryUtils:
 
     @staticmethod
     def transformPoint(translationMatrix, rotationMatrix, point: Point) -> Point:
+        """_summary_
 
-        translated = affine_transform(point, translationMatrix)
-        return affine_transform(translated, rotationMatrix)  # order matters.
+        Args:
+            translationMatrix (_type_): translation matrix in shapely format
+            rotationMatrix (_type_): rotatation matrix in shapely format
+            point (Point): point in the current coordinate system
+
+        Returns:
+            Point: Transformed point into a new coordinate system from the current one at 0,0.
+        """
+        # order matters. First, translate, last, rotate.
+        translated = TrajectoryUtils.translatePoint(point, translationMatrix)
+        return TrajectoryUtils.rotatePoint(translated, rotationMatrix)  
+
+
+    @staticmethod
+    def translatePoint(translationMatrix, point: Point) -> Point:
+        """_summary_
+
+        Args:
+            translationMatrix (_type_): translation matrix in shapely format
+            point (Point): point in the current coordinate system
+        Returns:
+            Point: Translated point into a new coordinate system from the current one at 0,0.
+        """
+        return affine_transform(point, translationMatrix)
+
+
+    @staticmethod
+    def rotatePoint(rotationMatrix, point: Point) -> Point:
+        """_summary_
+
+        Args:
+            rotationMatrix (_type_): rotatation matrix in shapely format
+            point (Point): point in the current coordinate system
+        Returns:
+            Point: Rotated point into a new coordinate system from the current one at 0,0.
+        """
+        return affine_transform(translated, rotationMatrix)  
+
+    @staticmethod
+    def translateTrajectoryToLocalSource(trackDf:pd.DataFrame, xCol, yCol) -> pd.DataFrame:
+        """For a single track only. We cannot make parallel updates for multiple pedestrians as the query would require sql.
+
+        Args:
+            trackDf (pd.DataFrame): _description_
+            xCol (_type_): _description_
+            yCol (_type_): _description_
+
+        Returns:
+            pd.DataFrame: _description_
+        """
+        # TODO pass
+        firstRow = trackDf.iloc[0]
+        originX = firstRow[xCol]
+        originY = firstRow[yCol]
+        pass
+        # trajDf
+        # posX = trajDf[xCol]
+        # posY = trackDf[yCol]
+        # for x, y in zip(posX, posY):
+        #     point = Point(x, y)
+
+
 
     @staticmethod
     def getType(trajDf: pd.DataFrame) -> str:

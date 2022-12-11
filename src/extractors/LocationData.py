@@ -466,7 +466,7 @@ class LocationData:
             self.getSceneData(sceneId).saveDataframes(pathPrefix)
 
             # whole thing as dill
-            fname = f"{date_time}-fps-{FPS}-scene-{sceneId}.dll"
+            fname = f"{date_time}-fps-{FPS}-scene-{sceneId}.dill"
             fpath = os.path.join(locDir, fname)
             if os.path.exists(fpath):
                 os.remove(fpath)
