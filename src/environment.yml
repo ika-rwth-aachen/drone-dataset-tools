@@ -1,0 +1,18 @@
+name: drone
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6
+  - notebook
+  - jupyter
+  - jupyterlab
+  - jupyter_server=1.13.1
+  - jupyter_client=7.1.0
+  - scipy
+  - pykalman
+  - shapely
+  - tqdm
+  - dill
+  - matplotlib
+prefix: C:\Users\adhocmaster\.conda\envs\drone

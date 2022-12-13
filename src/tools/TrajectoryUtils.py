@@ -250,50 +250,6 @@ class TrajectoryUtils:
         """
         return affine_transform(translated, rotationMatrix)  
 
-    @staticmethod
-    def translateTrajectoryToLocalSource(trackDf:pd.DataFrame, xCol, yCol) -> Tuple[pd.Series, pd.Series]:
-        """For a single track only. We cannot make parallel updates for multiple pedestrians as the query would require sql.
-
-        Args:
-            trackDf (pd.DataFrame): _description_
-            xCol (_type_): _description_
-            yCol (_type_): _description_
-
-        Returns:
-            pd.DataFrame: _description_
-        """
-        firstRow = trackDf.iloc[0]
-        originX = firstRow[xCol]
-        originY = firstRow[yCol]
-        # trackDf["localX"] = trackDf[xCol] - originX
-        # trackDf["localY"] = trackDf[yCol] - originY
-
-        return trackDf[xCol] - originX, trackDf[yCol] - originY
-        
-
-    @staticmethod
-    def translateTrajectoriesToLocalSource(tracskDf:pd.DataFrame, idCol, xCol, yCol):
-        """Will group by idCol and translate based on the first row of each track. We cannot make parallel updates for multiple pedestrians as the query would require sql.
-
-        Args:
-            trackDf (pd.DataFrame): _description_
-            idCol (_type_): track id column. 
-            xCol (_type_): _description_
-            yCol (_type_): _description_
-
-        Returns:
-            pd.DataFrame: _description_
-        """
-        # TODO pass
-
-        allPedIds = tracskDf["uniqueTrackId"].unique()
-        firstRow = trackDf.iloc[0]
-        originX = firstRow[xCol]
-        originY = firstRow[yCol]
-        trackDf["localX"] = trackDf[xCol] - originX
-        trackDf["localY"] = trackDf[yCol] - originY
-        pass
-
 
     @staticmethod
     def getType(trajDf: pd.DataFrame) -> str:

@@ -162,6 +162,8 @@ class TrajectoryVisualizer:
                      markerfacecolor="yellow", markeredgecolor="black")
 
     def showLocalTrajectories(self, df, idCol, xCol, yCol):
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot()
         pedIds = df[idCol].unique()
         for pedId in pedIds:
             pedDf = df[df[idCol] == pedId]
@@ -170,3 +172,5 @@ class TrajectoryVisualizer:
             lastRow = pedDf.tail(1)
             endPoint = (lastRow[xCol] , lastRow[yCol])
             plt.plot(endPoint[0], endPoint[1], marker='x')
+
+        ax.set_aspect('equal', adjustable='box')
