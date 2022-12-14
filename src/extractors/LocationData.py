@@ -12,6 +12,11 @@ import functools
 from .config import *
 
 
+from tti_dataset_tools.TrajectoryTransformer import TrajectoryTransformer
+from tti_dataset_tools.TrajectoryCleaner import TrajectoryCleaner
+from tti_dataset_tools.ColMapper import ColMapper
+
+
 class LocationData:
 
     def __init__(self, 
@@ -46,6 +51,24 @@ class LocationData:
         self.frameRate = self.recordingMetaList[0]["frameRate"]
         self.fps = FPS
         self.orthoPxToMeter = self.recordingMetaList[0]["orthoPxToMeter"]
+
+        # Trajectory transformer
+        colMapper = ColMapper(
+                idCol='uniqueTrackId', 
+                xCol='sceneX', 
+                yCol='sceneY',
+                xVelCol='xVelocity', 
+                yVelCol='xVelocity', 
+                speedCol='speed'
+            )
+        self.transformer = TrajectoryTransformer(colMapper)
+        self.cleaner = TrajectoryCleaner(
+            colMapper = colMapper,
+            minSpeed = 0.0,
+            maxSpeed = PED_MAX_SPEED,
+            minYDisplacement = 5.0,
+            maxXDisplacement = 8.0,
+        )
 
         # cache
         self._crossingDf = None
@@ -247,6 +270,7 @@ class LocationData:
             ) # just to be save if precomputation was not done
 
             sceneData.buildLocalInformation()
+            
 
 
 

@@ -11,6 +11,11 @@ import os
 from dill import dump, load
 from typing import List, Tuple, Set
 import logging
+from collections import defaultdict
+
+from tti_dataset_tools.TrajectoryTransformer import TrajectoryTransformer
+from tti_dataset_tools.TrajectoryCleaner import TrajectoryCleaner
+from tti_dataset_tools.ColMapper import ColMapper
 
 # from tools.TrajectoryAnalyzer import TrajectoryAnalyzer
 
@@ -64,11 +69,9 @@ class SceneData:
 
         self.pedData = pedData
         self._clippedPedData = None
-        self._pedIds = None
 
         self.otherData = otherData
         self._clippedOtherData = None
-        self._otherIds = None
         self._sceneTrackMeta = None
 
         # self.trajAnalyzer = TrajectoryAnalyzer(
@@ -87,18 +90,15 @@ class SceneData:
         self._isLocalInfomationBuilt = False
 
         self.warnings = []
-        self.problematicIds = {
-            "ped": set([]),
-            "other": set([])
-        }
+        # self.problematicIds = {
+        #     "ped": set([]),
+        #     "fast-ped": set([]),
+        #     "other": set([])
+        # }
+        self.problematicIds = defaultdict(lambda : set([]))
         
     
-    def buildLocalInformation(self):
-
-        if self._isLocalInfomationBuilt:
-            return
-
-        self._dropWorldCoordinateColumns()
+    def _deriveLocalCoordinateAndDynamics(self):
         self.reClip() # enables rebuilding
         # self.appendSceneIdToClipped()
 
@@ -106,6 +106,24 @@ class SceneData:
         self._addLocalDynamics()
         
         self._trimHeadAndTailForLocal()
+    
+    
+    def buildLocalInformation(self, transformer: TrajectoryTransformer, cleaner=TrajectoryCleaner, force=False):
+
+        if self._isLocalInfomationBuilt and not force:
+            return
+
+        self._dropWorldCoordinateColumns()
+
+        self._deriveLocalCoordinateAndDynamics()
+
+        # do cleaning on original trajectories
+        self.cleanup(transformer, cleaner)
+
+        # redo clipping and deriving data again. # TODO it's too slow, do everything on original data
+        self._deriveLocalCoordinateAndDynamics()
+
+
 
         idsBefore = self.uniqueClippedPedIds()
         
@@ -127,10 +145,7 @@ class SceneData:
         pass
 
     def uniquePedIds(self) -> np.ndarray:
-        if self._pedIds is None:
-            self._pedIds = self.pedData.uniqueTrackId.unique()
-
-        return self._pedIds
+        return self.pedData.uniqueTrackId.unique()
 
     def uniqueClippedPedIds(self) -> Set[int]:
         clippedDf = self.getClippedPedDfs()
@@ -139,10 +154,7 @@ class SceneData:
         return set([])
 
     def uniqueOtherIds(self) -> np.ndarray:
-        if self._otherIds is None:
-            self._otherIds = self.otherData.uniqueTrackId.unique()
-
-        return self._otherIds
+        return self.otherData.uniqueTrackId.unique()
 
     def uniqueClippedOtherIds(self) -> Set[int]:
         clippedDf = self.getClippedOtherDfs()
@@ -557,3 +569,44 @@ class SceneData:
             os.remove(fpath)
 
         self.getMeta().to_csv(fpath, index=False)
+
+    #region clean up
+
+    def cleanup(self, transformer: TrajectoryTransformer, cleaner: TrajectoryCleaner):
+        self.moveOutlierPedsToOthers(transformer, cleaner)
+
+    def moveOutlierPedsToOthers(self, transformer: TrajectoryTransformer, cleaner: TrajectoryCleaner):
+        """
+        fast_pedestrian
+        """
+        outlierClass = 'fast_pedestrian'
+        logging.info(f"SceneData {self.sceneId}: moving outlier peds to others. We should only find outliers in the clipped trajectories?")
+
+        pedDf = self.getPedDataInSceneCoordinates()
+        # otherDf = self.getOtherDataInSceneCoordinates()
+
+        # derive speed
+        if "speed" not in pedDf:
+            transformer.deriveSpeed(pedDf) # we need to call them again
+            # transformer.deriveSpeed(otherDf) # we need to call them again
+        # get outliers
+        # move outliers to others
+        # TODO update meta
+
+        outlierPedIds = cleaner.getOutliersBySpeed(pedDf, byIQR=False, returnVals=False)
+        outlierDfs = []
+        self.problematicIds[outlierClass] = set([])
+        for outlierPedId in outlierPedIds:
+            self.problematicIds[outlierClass].add(outlierPedId)
+            self.warnings.append(
+                f"{outlierClass} {outlierPedId}: moving {outlierPedId} to others as speed is unrealistic")
+            outlierDf = self.pedData[self.pedData["uniqueTrackId"] == outlierPedId].copy() # original data
+            outlierDfs.append(outlierDf)
+        
+        self.otherData = pd.concat([self.otherData] + outlierDfs, ignore_index=True)
+        
+        # drop from ped
+        criterion = self.pedData["uniqueTrackId"].map(lambda trackId: trackId not in outlierPedIds)
+        self.pedData = self.pedData[criterion].copy()
+
+        pass
