@@ -115,13 +115,14 @@ class SceneData:
 
         self._dropWorldCoordinateColumns()
 
-        self._deriveLocalCoordinateAndDynamics()
-
         # do cleaning on original trajectories
         self.cleanup(transformer, cleaner)
 
-        # redo clipping and deriving data again. # TODO it's too slow, do everything on original data
         self._deriveLocalCoordinateAndDynamics()
+
+
+        # # redo clipping and deriving data again. # TODO it's too slow, do everything on original data
+        # self._deriveLocalCoordinateAndDynamics()
 
 
 
@@ -582,18 +583,18 @@ class SceneData:
         outlierClass = 'fast_pedestrian'
         logging.info(f"SceneData {self.sceneId}: moving outlier peds to others. We should only find outliers in the clipped trajectories?")
 
-        pedDf = self.getPedDataInSceneCoordinates()
+        # pedDf = self.getPedDataInSceneCoordinates()
         # otherDf = self.getOtherDataInSceneCoordinates()
 
         # derive speed
-        if "speed" not in pedDf:
-            transformer.deriveSpeed(pedDf) # we need to call them again
+        if "speed" not in self.pedData:
+            transformer.deriveSpeed(self.pedData) # we need to call them again
             # transformer.deriveSpeed(otherDf) # we need to call them again
         # get outliers
         # move outliers to others
         # TODO update meta
 
-        outlierPedIds = cleaner.getOutliersBySpeed(pedDf, byIQR=False, returnVals=False)
+        outlierPedIds = cleaner.getOutliersBySpeed(self.pedData, byIQR=False, returnVals=False)
         outlierDfs = []
         self.problematicIds[outlierClass] = set([])
         for outlierPedId in outlierPedIds:
@@ -601,6 +602,7 @@ class SceneData:
             self.warnings.append(
                 f"{outlierClass} {outlierPedId}: moving {outlierPedId} to others as speed is unrealistic")
             outlierDf = self.pedData[self.pedData["uniqueTrackId"] == outlierPedId].copy() # original data
+            outlierDf["class"] = outlierClass
             outlierDfs.append(outlierDf)
         
         self.otherData = pd.concat([self.otherData] + outlierDfs, ignore_index=True)

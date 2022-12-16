@@ -53,22 +53,7 @@ class LocationData:
         self.orthoPxToMeter = self.recordingMetaList[0]["orthoPxToMeter"]
 
         # Trajectory transformer
-        colMapper = ColMapper(
-                idCol='uniqueTrackId', 
-                xCol='sceneX', 
-                yCol='sceneY',
-                xVelCol='xVelocity', 
-                yVelCol='xVelocity', 
-                speedCol='speed'
-            )
-        self.transformer = TrajectoryTransformer(colMapper)
-        self.cleaner = TrajectoryCleaner(
-            colMapper = colMapper,
-            minSpeed = 0.0,
-            maxSpeed = PED_MAX_SPEED,
-            minYDisplacement = 5.0,
-            maxXDisplacement = 8.0,
-        )
+        self.createTransformerCleaner()
 
         # cache
         self._crossingDf = None
@@ -83,6 +68,29 @@ class LocationData:
 
         if precomputeSceneData:
             self._precomputeSceneData()
+
+    def createTransformerCleaner(self):
+        colMapper = ColMapper(
+                idCol='uniqueTrackId', 
+                # xCol='sceneX', 
+                # yCol='sceneY',
+                # xVelCol='xVelocity', 
+                # yVelCol='xVelocity', 
+                xCol='xCenter', 
+                yCol='yCenter',
+                xVelCol='xVelocity', 
+                yVelCol='xVelocity', 
+                speedCol='speed'
+            )
+        self.transformer = TrajectoryTransformer(colMapper)
+        self.cleaner = TrajectoryCleaner(
+            colMapper = colMapper,
+            minSpeed = 0.0,
+            maxSpeed = PED_MAX_SPEED,
+            minYDisplacement = 5.0,
+            maxXDisplacement = 8.0,
+        )
+
 
     def validateRecordingMeta(self):
         sameValueFields = [
@@ -269,7 +277,7 @@ class LocationData:
                 sceneConfig["roadWidth"]
             ) # just to be save if precomputation was not done
 
-            sceneData.buildLocalInformation()
+            sceneData.buildLocalInformation(self.transformer, self.cleaner)
             
 
 

@@ -6,6 +6,7 @@ class TrackClass(Enum):
     Bicycle = 'bicycle'
     Pedestrian = 'pedestrian'
     Truck_Bus = 'truck_bus'
+    FastPedestrian = 'fast_pedestrian'
 
     @staticmethod
     def getTrackType(otherDf: pd.DataFrame):
@@ -16,6 +17,10 @@ class TrackClass(Enum):
     @staticmethod
     def isPedestrian(otherDf: pd.DataFrame):
         return TrackClass.getTrackType(otherDf) == TrackClass.Pedestrian.value
+
+    @staticmethod
+    def isFastPedestrian(otherDf: pd.DataFrame):
+        return TrackClass.getTrackType(otherDf) == TrackClass.FastPedestrian.value
 
     @staticmethod
     def isBicycle(otherDf: pd.DataFrame):
