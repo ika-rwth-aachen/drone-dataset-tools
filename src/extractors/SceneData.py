@@ -515,7 +515,8 @@ class SceneData:
                 trackDf=pedDf,
                 scenePolygon=scenePolygon,
                 trackClass=TrackClass.Pedestrian.value,
-                minLength=self.sceneConfig["roadWidth"] * 0.8,
+                # minLength=self.sceneConfig["roadWidth"] * 0.8,
+                minLength=0.1,
                 maxLength=(self.sceneConfig["roadWidth"] + crossingOffset) * 2,
             )
 

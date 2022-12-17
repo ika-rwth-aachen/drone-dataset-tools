@@ -123,7 +123,7 @@ class TrajectoryUtils:
                     entryFrame = row[frameCol]
                     continue
 
-            if entryFrame > 0:
+            if entryFrame >= 0:
                 if not insideRect:
                     if exitFrame == inf:
                         # check if this row is an exit point
@@ -163,13 +163,16 @@ class TrajectoryUtils:
         for idx, row in trackDf.iterrows():
 
             insideRect = rect.contains(Point(row[xCol], row[yCol]))
+            # print("insideRect", insideRect)
+            # print("entryFrame", entryFrame)
+            # print("exitFrame", exitFrame)
             if entryFrame == -inf:
                 # check if this row is an entry point
                 if insideRect:
                     entryFrame = row[frameCol]
                     continue
 
-            if entryFrame > 0: # check for exit frame
+            if entryFrame >= 0: # check for exit frame
                 if not insideRect:
                     exitFrame = row[frameCol]
                     choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)].copy()
@@ -182,6 +185,8 @@ class TrajectoryUtils:
 
         
         # sometimes there are no exit frame. use the last frame
+        # print("entryFrame", entryFrame)
+        # print("exitFrame", exitFrame)
         if entryFrame > 0 and exitFrame == inf:
             exitFrame = row[frameCol]
             choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)].copy()

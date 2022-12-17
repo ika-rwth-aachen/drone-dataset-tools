@@ -129,6 +129,7 @@ class TrajectoryVisualizer:
                     # localDf = sceneData.getPedDataInSceneCorrdinates()
                     self.plot(sceneData.orthoPxToMeter, clippedDf,
                               style="w", xCol='sceneX', yCol='sceneY')
+        plt.show()
 
 
     
