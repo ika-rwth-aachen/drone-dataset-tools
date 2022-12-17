@@ -517,7 +517,7 @@ class SceneData:
                 trackClass=TrackClass.Pedestrian.value,
                 # minLength=self.sceneConfig["roadWidth"] * 0.8,
                 minLength=0.1,
-                maxLength=(self.sceneConfig["roadWidth"] + crossingOffset) * 2,
+                maxLength=(self.sceneConfig["roadWidth"] + crossingOffset) * 3,
             )
 
             if len(clippedDfs) > 1:
@@ -550,7 +550,7 @@ class SceneData:
                 scenePolygon=scenePolygon,
                 trackClass=TrackClass.getTrackType(otherDf),
                 minLength=self.sceneConfig["roadWidth"], 
-                maxLength=self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH * 2, 
+                maxLength=self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH * 3, 
             )
 
             if len(clippedDfs) > 1:
