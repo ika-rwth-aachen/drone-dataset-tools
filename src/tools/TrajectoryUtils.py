@@ -143,10 +143,10 @@ class TrajectoryUtils:
             exitFrame = row[frameCol]
             exitCount += 1
         
-        return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)], exitCount
+        return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)].copy(), exitCount
 
     @staticmethod
-    def clipByRectMultiple(trackDf, xCol, yCol, frameCol, rect) -> List[pd.DataFrame]:
+    def clipByRectWithSplits(trackDf, xCol, yCol, frameCol, rect) -> List[pd.DataFrame]:
         """ For multiple entries, we return a list"""
 
         # find entry and exit point frame number, keep all the points in between and disregard others. A trajectory may enter several times, but we don't need them.
@@ -157,6 +157,7 @@ class TrajectoryUtils:
 
         entryFrame = -inf
         exitFrame = inf
+        exitCount = 0
 
 
         for idx, row in trackDf.iterrows():
@@ -168,24 +169,22 @@ class TrajectoryUtils:
                     entryFrame = row[frameCol]
                     continue
 
-            if entryFrame > 0:
+            if entryFrame > 0: # check for exit frame
                 if not insideRect:
-                    if exitFrame == inf:
-                        # check if this row is an exit point
-                        # Naive method as the ped can enter again
-                        exitFrame = row[frameCol]
-                        choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)]
-                        brokenTracks.append(choppedDf)
+                    exitFrame = row[frameCol]
+                    choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)].copy()
+                    brokenTracks.append(choppedDf)
+                    exitCount += 1
 
-                        # reset
-                        entryFrame = -inf
-                        exitFrame = inf
+                    # reset
+                    entryFrame = -inf
+                    exitFrame = inf
 
         
         # sometimes there are no exit frame. use the last frame
         if entryFrame > 0 and exitFrame == inf:
             exitFrame = row[frameCol]
-            choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)]
+            choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)].copy()
             brokenTracks.append(choppedDf)
         
         return brokenTracks

@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 import functools
 from .config import *
+import logging
 
 
 from tti_dataset_tools.TrajectoryTransformer import TrajectoryTransformer

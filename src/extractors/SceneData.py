@@ -112,11 +112,14 @@ class SceneData:
 
         if self._isLocalInfomationBuilt and not force:
             return
+            
+        self.warnings = []
+        self.problematicIds = defaultdict(lambda : set([]))
 
         self._dropWorldCoordinateColumns()
 
         # do cleaning on original trajectories
-        self.cleanup(transformer, cleaner)
+        self.cleanup(transformer, cleaner, force=force)
 
         self._deriveLocalCoordinateAndDynamics()
 
@@ -411,51 +414,90 @@ class SceneData:
 
     # region clipping
 
-    def _clipTrack(self, trackDf: pd.DataFrame, scenePolygon:box, minLength: float, metaClass:str) -> pd.DataFrame:
+    def assignNewTrackIdsToSplits(self, splitDfs: List[pd.DataFrame]) -> None:
+        """Assumes all the splits have the same uniqueTrackId. Assumes max splits is 10
+
+        Args:
+            splitDfs (List[pd.DataFrame]): _description_
+
+        Returns:
+            pd.DataFrame: _description_
+        """
+        trackId = splitDfs[0].head(1)["uniqueTrackId"].iloc[0]
+        if len(splitDfs) > 10:
+            raise Exception(f"SceneData: track #{trackId} has been split ({len(splitDfs)}) times ({len(splitDfs)}). Cannot handle more than 10 tracks")
+        trackId = trackId * 100
+        for splitDf in splitDfs:
+            splitDf["uniqueTrackId"] = trackId
+            trackId += 1
+        
+        pass    
+
+
+    def hasValidCrossingLength(self, clippedDf:pd.DataFrame, trackId:int, trackClass:str, minLength:float, maxLength: float):
+
+        trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
+        if (len(clippedDf) < 3) or (trackLength < minLength):
+            logging.debug(
+                f"{trackClass} {trackId}: Disregarding as the length {trackLength} is too short or rows too less ({len(clippedDf)})")
+            self.warnings.append(
+                f"{trackClass} {trackId}: Disregarding as the length {trackLength} is too short or rows too less ({len(clippedDf)})")
+            return False
+
+        elif trackLength > (maxLength):
+            logging.warn(
+                f"{trackClass} {trackId}: Disregarding as the length {trackLength} is too long)")
+            self.warnings.append(
+                f"{trackClass} {trackId}: Disregarding as the length {trackLength} is too long")
+            return False
+        
+        return True
+
+
+    def _clipTrack(self, trackDf: pd.DataFrame, scenePolygon:box, trackClass:str, minLength: float, maxLength: float) -> List[pd.DataFrame]:
 
             if len(trackDf) == 0: # means not in clipped df
-                return None
+                return []
 
             trackId = trackDf.head(1)["uniqueTrackId"].iloc[0]
-            clippedDf = None
+            validClips = []
 
             if len(trackDf) < 3: 
-                logging.debug(f"{metaClass} {trackId}: trajectory is too short ({len(trackDf)}) to be clipped")
-                self.warnings.append(f"{metaClass} {trackId}: trajectory is too short ({len(trackDf)}) to be clipped")
+                logging.debug(f"{trackClass} {trackId}: trajectory is too short ({len(trackDf)}) to be clipped")
+                self.warnings.append(f"{trackClass} {trackId}: trajectory is too short ({len(trackDf)}) to be clipped")
             else:
-                clippedDf, exitCount = TrajectoryUtils.clipByRect(
-                    trackDf, "xCenter", "yCenter", "frame", scenePolygon)
+                clippedDfs = TrajectoryUtils.clipByRectWithSplits(
+                                trackDf, 
+                                xCol="xCenter",
+                                yCol="yCenter",
+                                frameCol="frame",
+                                rect=scenePolygon
+                            )
+                # clippedDf, exitCount = TrajectoryUtils.clipByRect(
+                #     trackDf, "xCenter", "yCenter", "frame", scenePolygon)
 
-                if clippedDf is None:
-                    logging.debug(f"{metaClass} {trackId}: ERROR: No clipped trajectory")
-                    # raise Exception(f"No clipped trajectory for {metaClass} {trackId}")
-                    self.warnings.append(f"{metaClass} {trackId}: ERROR: No clipped trajectory")
+                if len(clippedDfs) == 0:
+                    logging.debug(f"{trackClass} {trackId}: ERROR: No clipped trajectory")
+                    # raise Exception(f"No clipped trajectory for {trackClass} {trackId}")
+                    self.warnings.append(f"{trackClass} {trackId}: ERROR: No clipped trajectory")
                 
                 else:
                 
-                    if exitCount > 1:
-                        self.warnings.append(f"{metaClass} {trackId}: enters the scene {exitCount} times")
+                    if len(clippedDfs) > 1:
+                        self.warnings.append(f"{trackClass} {trackId}: enters the scene {len(clippedDfs)} times")
+
+                    for clippedDf in clippedDfs:
+                        if self.hasValidCrossingLength(clippedDf, trackId, trackClass, minLength, maxLength):
+                            validClips.append(clippedDf)
 
 
-                    trackLength = TrajectoryUtils.length(clippedDf, "xCenter", "yCenter")
-                    if (len(clippedDf) < 3) or (trackLength < minLength):
-                        logging.debug(
-                            f"{metaClass} {trackId}: Disregarding as the length {trackLength} is too short or rows too less ({len(clippedDf)})")
-                        self.warnings.append(
-                            f"{metaClass} {trackId}: Disregarding as the length {trackLength} is too short or rows too less ({len(clippedDf)})")
-                        clippedDf = None
-                    elif trackLength > (minLength * 2):
-                        logging.warn(
-                            f"{metaClass} {trackId}: Disregarding as the length {trackLength} is too long)")
-                        self.warnings.append(
-                            f"{metaClass} {trackId}: Disregarding as the length {trackLength} is too long")
-                        clippedDf = None
 
                         
-            if clippedDf is None:
-                self.problematicIds[metaClass].add(trackId)
+            if len(validClips) == 0:
+                self.warnings.append(f"{trackClass} {trackId}: ERROR: No valid clipped trajectory")
+                self.problematicIds[trackClass].add(trackId)
 
-            return clippedDf
+            return validClips
 
 
     def _clipPed(self, crossingOffset, onFull = True):
@@ -469,15 +511,21 @@ class SceneData:
         for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId, clipped = not onFull)
 
-            clippedDf = self._clipTrack(
+            clippedDfs = self._clipTrack(
                 trackDf=pedDf,
                 scenePolygon=scenePolygon,
+                trackClass=TrackClass.Pedestrian.value,
                 minLength=self.sceneConfig["roadWidth"] * 0.8,
-                metaClass="ped"
+                maxLength=(self.sceneConfig["roadWidth"] + crossingOffset) * 2,
             )
 
-            if clippedDf is not None:
-                dfs.append(clippedDf)
+            if len(clippedDfs) > 1:
+                self.assignNewTrackIdsToSplits(clippedDfs)
+                dfs.extend(clippedDfs)
+
+            if len(clippedDfs) > 0:
+                dfs.extend(clippedDfs)
+
 
             
         if len(dfs) == 0:
@@ -496,15 +544,21 @@ class SceneData:
 
             otherDf = self.getOtherDfByUniqueTrackId(otherId, clipped = not onFull)
             
-            clippedDf = self._clipTrack(
+            clippedDfs = self._clipTrack(
                 trackDf=otherDf,
                 scenePolygon=scenePolygon,
+                trackClass=TrackClass.getTrackType(otherDf),
                 minLength=self.sceneConfig["roadWidth"], 
-                metaClass="ped"
+                maxLength=self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH * 2, 
             )
 
-            if clippedDf is not None:
-                dfs.append(clippedDf)
+            if len(clippedDfs) > 1:
+                self.assignNewTrackIdsToSplits(clippedDfs)
+                dfs.extend(clippedDfs)
+
+            if len(clippedDfs) > 0:
+                dfs.extend(clippedDfs)
+
 
 
         if len(dfs) == 0:
@@ -573,13 +627,16 @@ class SceneData:
 
     #region clean up
 
-    def cleanup(self, transformer: TrajectoryTransformer, cleaner: TrajectoryCleaner):
-        self.moveOutlierPedsToOthers(transformer, cleaner)
+    def cleanup(self, transformer: TrajectoryTransformer, cleaner: TrajectoryCleaner, force=False):
+        self.moveOutlierPedsToOthers(transformer, cleaner, force=force)
 
-    def moveOutlierPedsToOthers(self, transformer: TrajectoryTransformer, cleaner: TrajectoryCleaner):
+    def moveOutlierPedsToOthers(self, transformer: TrajectoryTransformer, cleaner: TrajectoryCleaner, force=False):
         """
         fast_pedestrian
         """
+        if self._isLocalInfomationBuilt and not force:
+            raise Exception(f"Local information already build, cannot move outliers")
+
         outlierClass = 'fast_pedestrian'
         logging.info(f"SceneData {self.sceneId}: moving outlier peds to others. We should only find outliers in the clipped trajectories?")
 
@@ -612,3 +669,5 @@ class SceneData:
         self.pedData = self.pedData[criterion].copy()
 
         pass
+
+    #endregion
