@@ -139,7 +139,7 @@ class TrajectoryUtils:
             return None, 0
 
         # sometimes there are no exit frame. use the last frame
-        if entryFrame > 0 and exitFrame == inf:
+        if entryFrame >= 0 and exitFrame == inf:
             exitFrame = row[frameCol]
             exitCount += 1
         
@@ -187,8 +187,11 @@ class TrajectoryUtils:
         # sometimes there are no exit frame. use the last frame
         # print("entryFrame", entryFrame)
         # print("exitFrame", exitFrame)
-        if entryFrame > 0 and exitFrame == inf:
+        if entryFrame >= 0 and exitFrame == inf:
             exitFrame = row[frameCol]
+            # print("row", row)
+            # print("entryFrame", entryFrame)
+            # print("exitFrame", exitFrame)
             choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)].copy()
             brokenTracks.append(choppedDf)
         
