@@ -110,8 +110,14 @@ class SceneData:
     
     def buildLocalInformation(self, transformer: TrajectoryTransformer, cleaner=TrajectoryCleaner, force=False):
 
-        if self._isLocalInfomationBuilt and not force:
+        if force:
+            self._isLocalTransformationDone = False
+            self._isLocalInfomationBuilt = False
+
+
+        if self._isLocalInfomationBuilt:
             return
+        
             
         self.warnings = []
         self.problematicIds = defaultdict(lambda : set([]))
