@@ -225,8 +225,8 @@ class TrajectoryUtils:
             Point: Transformed point into a new coordinate system from the current one at 0,0.
         """
         # order matters. First, translate, last, rotate.
-        translated = TrajectoryUtils.translatePoint(point, translationMatrix)
-        return TrajectoryUtils.rotatePoint(translated, rotationMatrix)  
+        translated = TrajectoryUtils.translatePoint(translationMatrix, point)
+        return TrajectoryUtils.rotatePoint(rotationMatrix, translated)  
 
 
     @staticmethod
@@ -252,7 +252,7 @@ class TrajectoryUtils:
         Returns:
             Point: Rotated point into a new coordinate system from the current one at 0,0.
         """
-        return affine_transform(translated, rotationMatrix)  
+        return affine_transform(point, rotationMatrix)  
 
 
     @staticmethod
