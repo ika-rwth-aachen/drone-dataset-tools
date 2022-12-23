@@ -447,21 +447,3 @@ class TrajectoryUtils:
             trimmedTracks.append(aTrack.iloc[2: len(aTrack) - 2, :]) # 4 frames to exclude invalid acceleration and velocities
         
         return pd.concat(trimmedTracks)
-
-    @staticmethod
-    def rotate(trackDf: pd.DataFrame, origin: Point = None):
-        if origin is not None:
-            raise Exception("trajectory rotate does not support origin")
-        pass
-
-    @staticmethod
-    def flipY(trackDf: pd.DataFrame, origin: Point = None):
-        if origin is not None:
-            raise Exception("trajectory flipY does not support origin")
-        pass
-
-    @staticmethod
-    def flipX(trackDf: pd.DataFrame, origin: Point = None):
-        if origin is not None:
-            raise Exception("trajectory flipX does not support origin")
-        pass
