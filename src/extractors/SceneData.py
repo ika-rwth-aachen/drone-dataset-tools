@@ -555,7 +555,8 @@ class SceneData:
                 trackDf=otherDf,
                 scenePolygon=scenePolygon,
                 trackClass=TrackClass.getTrackType(otherDf),
-                minLength=self.sceneConfig["roadWidth"], 
+                # minLength=self.sceneConfig["roadWidth"], 
+                minLength=0.2, 
                 maxLength=self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH * 3, 
             )
 

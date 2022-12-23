@@ -266,6 +266,7 @@ class LocationData:
             )
     
     def buildLocalInformationForScenes(self):
+        self.createTransformerCleaner()
         sceneConfigs = self.getSceneConfig()
         sceneIds = list(sceneConfigs.keys())
 
