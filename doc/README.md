@@ -1,5 +1,7 @@
 # Pedestrian trajectory extraction and processing
 
+This tool provides extraction and processing scripts for jaywalker trajectories. It currently extracts data from InD dataset. But the approach can be used for any BEV dataset.
+
 ## Architecture & Tutorials
 1. [Methodology for Extraction](extractors-methodology.md) 
 2. [Quick start](how-to-use.md)
@@ -67,4 +69,10 @@ The meta data is developed in clipped trajectories in the scene coordinate syste
 | class | type of the actor |
 | horizontalDirection | Positive x is EAST |
 | verticalDirection | Positive y is NORTH |
+
+
+## Application
+1. Trajectory inpainting or forking
+2. Scenario reconstruction and dataset augmentation
+3. Generative behavior modeling
 
