@@ -72,7 +72,7 @@ The meta data is developed in clipped trajectories in the scene coordinate syste
 
 
 ## Application
-1. Trajectory inpainting or forking
+1. Trajectory inpainting or forking - helps the partial trajectories recorded in dashcams.
 2. Scenario reconstruction and dataset augmentation
 3. Generative behavior modeling
 
