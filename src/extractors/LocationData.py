@@ -81,7 +81,8 @@ class LocationData:
                 yCol='yCenter',
                 xVelCol='xVelocity', 
                 yVelCol='xVelocity', 
-                speedCol='speed'
+                speedCol='speed',
+                fps=25
             )
         self.transformer = TrajectoryTransformer(colMapper)
         self.cleaner = TrajectoryCleaner(
