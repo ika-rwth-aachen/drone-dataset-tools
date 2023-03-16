@@ -117,12 +117,13 @@ class LocationData:
         summary = {
             "#original frameRate": self.frameRate,
             "#crossing trajectories": len(self.getUniqueCrossingIds()),
-            "#scene trajectories": functools.reduce(lambda acc, new: acc + new, [SceneData.clippedPedSize() for SceneData in self._sceneData.values()])
+            "#scene trajectories": functools.reduce(lambda acc, new: acc + new, [SceneData.clippedPedSize() for SceneData in self._sceneData.values() if SceneData is not None])
         }
 
         for sceneId in self._sceneData.keys():
-            summary[f"scene#{sceneId} peds"] = self._sceneData[sceneId].clippedPedSize()
-            summary[f"scene#{sceneId} others"] = self._sceneData[sceneId].clippedOtherSize()
+            if self._sceneData[sceneId] is not None:
+                summary[f"scene#{sceneId} peds"] = self._sceneData[sceneId].clippedPedSize()
+                summary[f"scene#{sceneId} others"] = self._sceneData[sceneId].clippedOtherSize()
 
         return summary
 
@@ -281,6 +282,7 @@ class LocationData:
             ) # just to be save if precomputation was not done
             if sceneData is not None:
                 sceneData.buildLocalInformation(self.transformer, self.cleaner)
+                
             
 
 
