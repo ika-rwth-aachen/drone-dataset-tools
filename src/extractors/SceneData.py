@@ -253,6 +253,10 @@ class SceneData:
 
             # row['sceneX'] = newPosition.x
             # row['sceneY'] = newPosition.y
+            if newPosition.is_empty:
+                print(f"Position : {position} NewPos : {newPosition}")
+                print(f"Translation : {translationMat}")
+                print(f"Rotation : {rotationMat}")
             sceneX.append(newPosition.x)
             sceneY.append(newPosition.y)
 
