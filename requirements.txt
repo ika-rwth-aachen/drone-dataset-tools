@@ -10,4 +10,4 @@ tdqm>=4.15.0
 dill>=0.3.1.1
 vg>=2.0.0
 seaborn>=0.12.1
-tti-dataset-tools>=0.1.0
+tti-dataset-tools>=0.1.1
