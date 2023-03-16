@@ -278,8 +278,8 @@ class LocationData:
                 sceneConfig["boxWidth"], 
                 sceneConfig["roadWidth"]
             ) # just to be save if precomputation was not done
-
-            sceneData.buildLocalInformation(self.transformer, self.cleaner)
+            if sceneData is not None:
+                sceneData.buildLocalInformation(self.transformer, self.cleaner)
             
 
 

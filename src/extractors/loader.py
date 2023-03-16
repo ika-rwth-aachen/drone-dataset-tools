@@ -140,8 +140,9 @@ class Loader:
         pass
 
 
-    def getLocationData(self, locationId, useSceneConfigToExtract=False, precomputeSceneData=True):
-        recordingIds = self.getRecordingIdsOfALocation(locationId)
+    def getLocationData(self, locationId, useSceneConfigToExtract=False, precomputeSceneData=True, recordingIds=None):
+        if recordingIds is None:
+            recordingIds = self.getRecordingIdsOfALocation(locationId)
         logging.info(f"recordingIds: {recordingIds}")
         recordingDataList = [self.getRecordingData(rId) for rId in recordingIds]
         self.validateLocationRecordingMeta()
