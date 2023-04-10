@@ -62,7 +62,8 @@ class Loader:
     
 
     def getBackgroundImagePath(self, recordingId):
-        return path.join(self.directory, f'{recordingId}_background.png')
+        # append a 0 because recordingId is fixed to two digits
+        return path.join(self.directory, f'{recordingId}_background.png') if int(recordingId) > 9 else path.join(self.directory, f'0{recordingId}_background.png') 
     
 
     def getRecordingData(self, recordingId):

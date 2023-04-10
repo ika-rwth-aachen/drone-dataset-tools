@@ -288,3 +288,9 @@ class RecordingData:
         if len(otherDfs) > 0:
             return pd.concat(otherDfs, ignore_index=True)
         return pd.DataFrame()
+
+
+    def getPedDf(self):
+        pedIds = self.getPedIds()
+        pedDfsInList = [self.getDfById(pedId) for pedId in pedIds]
+        return pd.concat(pedDfsInList, ignore_index=True)

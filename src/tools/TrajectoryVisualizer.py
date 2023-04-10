@@ -167,7 +167,7 @@ class TrajectoryVisualizer:
         ax = fig.add_subplot()
         pedIds = df[idCol].unique()
         for pedId in pedIds:
-            pedDf = df[df[idCol] == pedId]
+            pedDf = df[df[idCol] == pedId]  
             plt.plot(pedDf[xCol], pedDf[yCol])
             # plot direction
             lastRow = pedDf.tail(1)
