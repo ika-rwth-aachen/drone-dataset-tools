@@ -78,7 +78,7 @@ class TrajectoryVisualizer:
     def showLocationSceneData(self, sceneData: SceneData, onlyClipped=False, showLocal=False, showOthers=False, ids=None, offset=None, limit=100):
 
         self.initPlot(
-            recordingId=sceneData.pedData.recordingId[0],
+            recordingId=list(sceneData.pedData.recordingId)[0],
             title=f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}",
             backgroundImagePath=sceneData.backgroundImagePath
         )
@@ -175,3 +175,18 @@ class TrajectoryVisualizer:
             plt.plot(endPoint[0], endPoint[1], marker='x')
 
         ax.set_aspect('equal', adjustable='box')
+
+    def showPedestrianTrajectoriesInRecording(self, recordingData):
+        self.initPlot(
+            recordingId=recordingData.recordingId,
+            title=f"Pedestrian Trajectories for recording {recordingData.recordingId}"
+            # backgroundImagePath=recordingData.backgroundImagePath
+        )
+        print(recordingData.backgroundImagePath)
+        pedIds = recordingData.getPedIds()
+
+        for pedId in pedIds:
+            pedDf = recordingData.getDfById(pedId)
+            self.plot(recordingData.orthoPxToMeter, pedDf)
+
+        plt.show()

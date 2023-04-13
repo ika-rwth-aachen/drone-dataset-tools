@@ -81,6 +81,51 @@
       "boxWidth": 10.0
     }
 
+  },
+
+ "4":{
+
+  "40": {
+    "centerXPixel": 700,
+    "centerYPixel": 499,
+    "centerX": 106.68,
+    "centerY": -76.05,
+    "angle": 26.11,
+    "roadWidth": 18.0,
+    "boxWidth": 50.0
+  },
+
+  "41": {
+    "centerXPixel": 1085,
+    "centerYPixel": 315,
+    "centerX": 165.35,
+    "centerY": -48.01,
+    "angle": 23.74,
+    "roadWidth": 18.0,
+    "boxWidth": 25.0
+  },
+
+  "30": {
+    "centerXPixel": 908.28,
+    "centerYPixel": 240.47,
+    "centerX": 138.42,
+    "centerY": -36.65,
+    "angle": 84.42,
+    "roadWidth": 18.0,
+    "boxWidth": 40.0
   }
+  },
   
+  "1":{
+ 
+   "40": {
+     "centerXPixel": 663.27,
+     "centerYPixel": 230.52,
+     "centerX": 64.84,
+     "centerY": -22.53,
+     "angle": 49.09,
+     "roadWidth": 6.0,
+     "boxWidth": 15.0
+   }
+   }
 }
