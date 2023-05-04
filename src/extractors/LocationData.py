@@ -460,13 +460,13 @@ class LocationData:
         locDir = self.madeLocationDir(outputDir)
         date_time = datetime.now().strftime("%Y-%m-%d")
 
-        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-crossing.csv")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{self.fps}-crossing.csv")
         if os.path.exists(fpath):
             os.remove(fpath)
         crossingDf = self.getCrossingDf()
         crossingDf.to_csv(fpath, index=False)
 
-        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-other.csv")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{self.fps}-other.csv")
         if os.path.exists(fpath):
             os.remove(fpath)
         otherDf = self.getOtherDf()
@@ -479,7 +479,7 @@ class LocationData:
         locDir = self.madeLocationDir(outputDir)
         date_time = datetime.now().strftime("%Y-%m-%d")
 
-        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-all.dill")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{self.fps}-all.dill")
         if os.path.exists(fpath):
             os.remove(fpath)
         with open(fpath, "wb") as fp:
@@ -499,12 +499,12 @@ class LocationData:
 
 
             # dataframes
-            dfPrefix = f"{date_time}-fps-{FPS}"
+            dfPrefix = f"{date_time}-fps-{self.fps}"
             pathPrefix = os.path.join(locDir, dfPrefix)
             self.getSceneData(sceneId).saveDataframes(pathPrefix)
 
             # whole thing as dill
-            fname = f"{date_time}-fps-{FPS}-scene-{sceneId}.dill"
+            fname = f"{date_time}-fps-{self.fps}-scene-{sceneId}.dill"
             fpath = os.path.join(locDir, fname)
             if os.path.exists(fpath):
                 os.remove(fpath)
