@@ -248,11 +248,16 @@ class SceneData:
             # velocity = (row["xVelocity"], row["yVelocity"])
             # acceleration = (row["xAcceleration"], row["yAcceleration"])
             # heading = row['heading']
+            # print("dhukbo")
             newPosition = TrajectoryUtils.transformPoint(
                 translationMat, rotationMat, position)
 
             # row['sceneX'] = newPosition.x
             # row['sceneY'] = newPosition.y
+            if newPosition.is_empty:
+                print(f"Position : {position} NewPos : {newPosition}")
+                print(f"Translation : {translationMat}")
+                print(f"Rotation : {rotationMat}")
             sceneX.append(newPosition.x)
             sceneY.append(newPosition.y)
 

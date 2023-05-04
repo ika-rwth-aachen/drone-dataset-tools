@@ -1,4 +1,4 @@
-from shapely.geometry import LineString, box, Point
+from shapely.geometry import LineString, box, Point, Polygon
 from shapely.affinity import rotate, translate, affine_transform
 from extractors.TrackDirection import TrackDirection
 
@@ -56,7 +56,7 @@ class TrajectoryUtils:
         # TODO rotate
 
         bbox = box(minX, minY, maxX, maxY)
-        return rotate(bbox, sceneConfig['angle'])
+        return TrajectoryUtils.boxRotate(bbox, sceneConfig['angle'])
 
     @staticmethod
     def doesIntersect(polygon: box, spline: LineString) -> bool:
@@ -229,11 +229,15 @@ class TrajectoryUtils:
         """
         # order matters. First, translate, last, rotate.
         translated = TrajectoryUtils.translatePoint(translationMatrix, point)
+
+
+        if translated.is_empty:
+            print(f"is empty {translated}")
         return TrajectoryUtils.rotatePoint(rotationMatrix, translated)  
 
 
     @staticmethod
-    def translatePoint(translationMatrix, point: Point) -> Point:
+    def translatePoint(translationMatrix, point: Point, debug = False) -> Point:
         """_summary_
 
         Args:
@@ -242,7 +246,7 @@ class TrajectoryUtils:
         Returns:
             Point: Translated point into a new coordinate system from the current one at 0,0.
         """
-        return affine_transform(point, translationMatrix)
+        return TrajectoryUtils.getChangedPoint(point, translationMatrix)
 
 
     @staticmethod
@@ -255,7 +259,7 @@ class TrajectoryUtils:
         Returns:
             Point: Rotated point into a new coordinate system from the current one at 0,0.
         """
-        return affine_transform(point, rotationMatrix)  
+        return TrajectoryUtils.getChangedPoint(point, rotationMatrix)  
 
 
     @staticmethod
@@ -447,3 +451,42 @@ class TrajectoryUtils:
             trimmedTracks.append(aTrack.iloc[2: len(aTrack) - 2, :]) # 4 frames to exclude invalid acceleration and velocities
         
         return pd.concat(trimmedTracks)
+
+    @staticmethod
+    def boxAffineTransform(geom:Polygon, matrix:tuple) -> Polygon:
+        newPoints = []
+        for x, y in geom.exterior.coords:
+            newPoints.append(TrajectoryUtils.getChangedPoint(Point(x, y), matrix))
+        
+        newGeom = Polygon(newPoints)
+        return newGeom
+
+    @staticmethod
+    def boxRotate(geom:Polygon, angle:float)->Polygon:
+        # convert from degree
+        angle = angle * np.pi/180.0
+        cosp = cos(angle)
+        sinp = sin(angle)
+        
+        minx, miny, maxx, maxy = geom.bounds
+        center = Point((minx + maxx) / 2.0, (miny + maxy) / 2.0)
+        matrix = [cosp, -sinp, 
+              sinp,  cosp,
+              center.x - center.x * cosp + center.y * sinp, center.y - center.x * sinp - center.y * cosp]
+        
+        # to do affine_transform
+        return TrajectoryUtils.boxAffineTransform(geom, matrix)
+
+    
+        
+    @staticmethod
+    def getChangedPoint(point:Point, matrix) -> Point:
+        """Takes a point and transforms it
+        Returns:
+            tuple: point
+        """
+        x = matrix[0] * point.x + matrix[1] * point.y + matrix[4]
+        y = matrix[2] * point.x + matrix[3] * point.y + matrix[5]
+        return Point(x, y)
+
+
