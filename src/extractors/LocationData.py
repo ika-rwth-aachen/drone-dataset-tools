@@ -24,9 +24,10 @@ class LocationData:
         locationId, 
         recordingIds, 
         recordingDataList, 
+        fps: int,
         useSceneConfigToExtract=True, 
         precomputeSceneData=True,
-        backgroundImagePath = None
+        backgroundImagePath = None,
     ):
         """_summary_
 
@@ -50,7 +51,7 @@ class LocationData:
         self.validateRecordingMeta()
 
         self.frameRate = self.recordingMetaList[0]["frameRate"]
-        self.fps = FPS
+        self.fps = fps
         self.orthoPxToMeter = self.recordingMetaList[0]["orthoPxToMeter"]
 
         # Trajectory transformer

@@ -4,6 +4,8 @@ from os import path, listdir
 import logging
 
 from sortedcontainers import SortedList
+
+from .config import FPS
 from .RecordingData import RecordingData
 from .LocationData import LocationData
 
@@ -66,7 +68,7 @@ class Loader:
         return path.join(self.directory, f'{recordingId}_background.png') if int(recordingId) > 9 else path.join(self.directory, f'0{recordingId}_background.png') 
     
 
-    def getRecordingData(self, recordingId):
+    def getRecordingData(self, recordingId, downSampleFps=FPS):
         """_summary_
 
         Args:
@@ -89,7 +91,7 @@ class Loader:
         backgroundImagePath = self.getBackgroundImagePath(recordingId)
 
 
-        return RecordingData(recordingId, recordingMeta, tracksMetaDf, tracksDf, backgroundImagePath)
+        return RecordingData(recordingId, recordingMeta, tracksMetaDf, tracksDf, backgroundImagePath, downSampleFps=downSampleFps)
 
         # return tracksDf, tracksMetaDf, recordingMeta
 
@@ -141,17 +143,18 @@ class Loader:
         pass
 
 
-    def getLocationData(self, locationId, useSceneConfigToExtract=False, precomputeSceneData=True, recordingIds=None):
+    def getLocationData(self, locationId, useSceneConfigToExtract=False, precomputeSceneData=True, recordingIds=None, downSampleFps=FPS):
         if recordingIds is None:
             recordingIds = self.getRecordingIdsOfALocation(locationId)
         logging.info(f"recordingIds: {recordingIds}")
-        recordingDataList = [self.getRecordingData(rId) for rId in recordingIds]
+        recordingDataList = [self.getRecordingData(rId, downSampleFps=downSampleFps) for rId in recordingIds]
         self.validateLocationRecordingMeta()
 
         return LocationData(
             locationId = locationId, 
             recordingIds = recordingIds, 
             recordingDataList = recordingDataList, 
+            fps = downSampleFps,
             useSceneConfigToExtract = useSceneConfigToExtract,
             backgroundImagePath = self.getBackgroundImagePath(recordingIds[0]),
             precomputeSceneData=precomputeSceneData

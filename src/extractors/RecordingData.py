@@ -16,7 +16,8 @@ class RecordingData:
         recordingMeta,
         tracksMetaDf,
         tracksDf,
-        backgroundImagePath=None
+        backgroundImagePath=None,
+        downSampleFps=FPS
     ):
 
         self.recordingId = recordingId
@@ -24,6 +25,7 @@ class RecordingData:
         self.tracksMetaDf = tracksMetaDf
         self.tracksDf = tracksDf
         self.backgroundImagePath = backgroundImagePath
+        self.fps = downSampleFps
 
         self._crossingDfByAnnotation = None
         self._crossingDfBySceneConfig = None
@@ -32,7 +34,7 @@ class RecordingData:
 
         self._trackIdClassMap = {}
         self._extractTrackIdClasses()
-        self._downSampleByTrackLifeTime()
+        self._downSampleByTrackLifeTime(toFPS=self.fps)
 
     @property
     def locationId(self):
