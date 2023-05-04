@@ -1,7 +1,7 @@
 {
   "2": {
 
-    "10": {
+    "210": {
       "centerXPixel": 628.5,
       "centerYPixel": 286.5,
       "centerX": 61.44,
@@ -11,7 +11,7 @@
       "boxWidth": 10.0
     },
 
-    "11": {
+    "211": {
       "centerXPixel": 688.5,
       "centerYPixel": 273.5,
       "centerX": 67.30,
@@ -21,7 +21,7 @@
       "boxWidth": 5.0
     },
 
-    "20": {
+    "220": {
       "centerXPixel": 383.5,
       "centerYPixel": 322.5,
       "centerX": 37.49,
@@ -31,7 +31,7 @@
       "boxWidth": 15.0
     },
 
-    "21": {
+    "221": {
       "centerXPixel": 302.5,
       "centerYPixel": 345.5,
       "centerX": 29.57,
@@ -41,7 +41,7 @@
       "boxWidth": 15.0
     },
 
-    "22": {
+    "222": {
       "centerXPixel": 188.5,
       "centerYPixel": 375.5,
       "centerX": 18.43,
@@ -51,7 +51,7 @@
       "boxWidth": 20.0
     },
 
-    "30": {
+    "230": {
       "centerXPixel": 490.5,
       "centerYPixel": 392.5,
       "centerX": 47.95,
@@ -61,7 +61,7 @@
       "boxWidth": 15.0
     },
 
-    "31": {
+    "231": {
       "centerXPixel": 518.5,
       "centerYPixel": 461.5,
       "centerX": 50.67,
@@ -71,7 +71,7 @@
       "boxWidth": 10.0
     },
 
-    "40": {
+    "240": {
       "centerXPixel": 450.5,
       "centerYPixel": 180.5,
       "centerX": 44.04,
@@ -85,7 +85,7 @@
 
  "4":{
 
-  "40": {
+  "440": {
     "centerXPixel": 700,
     "centerYPixel": 499,
     "centerX": 106.68,
@@ -95,7 +95,7 @@
     "boxWidth": 50.0
   },
 
-  "41": {
+  "441": {
     "centerXPixel": 1085,
     "centerYPixel": 315,
     "centerX": 165.35,
@@ -105,7 +105,7 @@
     "boxWidth": 25.0
   },
 
-  "30": {
+  "430": {
     "centerXPixel": 908.28,
     "centerYPixel": 240.47,
     "centerX": 138.42,
@@ -118,7 +118,7 @@
   
   "1":{
  
-   "40": {
+   "140": {
      "centerXPixel": 663.27,
      "centerYPixel": 230.52,
      "centerX": 64.84,
@@ -128,7 +128,7 @@
      "boxWidth": 15.0
    },
 
-   "30": {
+   "130": {
      "centerXPixel": 716.38,
      "centerYPixel": 498.85,
      "centerX": 70.03068040678744, 
@@ -138,7 +138,7 @@
      "boxWidth": 30.0
    },
    
-   "31": {
+   "131": {
      "centerXPixel": 414.91,
      "centerYPixel": 166.13,
      "centerX": 40.56007929811019,
@@ -148,7 +148,7 @@
      "boxWidth": 30.0
    },
 
-   "20": {
+   "120": {
      "centerXPixel": 522.15,
      "centerYPixel": 400.08,
      "centerX": 51.043468235299784,  
@@ -161,7 +161,7 @@
 
   "3":{
  
-   "40": {
+   "340": {
      "centerXPixel": 596.30,
      "centerYPixel": 523.31,
      "centerX": 58.292100179468086,
@@ -171,7 +171,7 @@
      "boxWidth": 6.0
    },
 
-   "30": {
+   "330": {
      "centerXPixel": 525.85,
      "centerYPixel": 207.48,
      "centerX": 51.40516666002566, 
@@ -181,7 +181,7 @@
      "boxWidth": 6.0
    },
    
-   "31": {
+   "331": {
      "centerXPixel": 583.68,
      "centerYPixel": 267.57,
      "centerX": 57.05841528215987, 
