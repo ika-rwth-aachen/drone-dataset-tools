@@ -24,7 +24,6 @@ class TrajectoryVisualizer:
         plt.subplots_adjust(left=0.0, right=1.0, bottom=0.10, top=1.00)
         # self.fig.canvas.set_window_title(title)
         self.ax.set_title(title)
-
         if backgroundImagePath is None:
             backgroundImagePath = self.loader.getBackgroundImagePath(
                 recordingId)
@@ -80,7 +79,7 @@ class TrajectoryVisualizer:
         self.initPlot(
             recordingId=list(sceneData.pedData.recordingId)[0],
             title=f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}",
-            backgroundImagePath=sceneData.backgroundImagePath
+            # backgroundImagePath=sceneData.backgroundImagePath
         )
 
         # scene box
