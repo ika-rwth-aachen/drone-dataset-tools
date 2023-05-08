@@ -1,3 +1,4 @@
+from typing import List
 import pandas as pd
 from sortedcontainers import SortedList
 from loguru import logger
@@ -24,9 +25,10 @@ class LocationData:
         locationId, 
         recordingIds, 
         recordingDataList, 
+        fps: int,
         useSceneConfigToExtract=True, 
         precomputeSceneData=True,
-        backgroundImagePath = None
+        backgroundImagePath = None,
     ):
         """_summary_
 
@@ -50,7 +52,7 @@ class LocationData:
         self.validateRecordingMeta()
 
         self.frameRate = self.recordingMetaList[0]["frameRate"]
-        self.fps = FPS
+        self.fps = fps
         self.orthoPxToMeter = self.recordingMetaList[0]["orthoPxToMeter"]
 
         # Trajectory transformer
@@ -325,6 +327,9 @@ class LocationData:
         sceneId = str(sceneId)
         otherDf = self.getOtherDf()
         return otherDf[otherDf["sceneId"] == sceneId].copy().reset_index()
+    
+    def getSceneIds(self) -> List[str]:
+        return list(self._sceneData.keys())
 
     def getSceneData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=FPS) -> SceneData:
         """_summary_
@@ -459,13 +464,13 @@ class LocationData:
         locDir = self.madeLocationDir(outputDir)
         date_time = datetime.now().strftime("%Y-%m-%d")
 
-        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-crossing.csv")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{self.fps}-crossing.csv")
         if os.path.exists(fpath):
             os.remove(fpath)
         crossingDf = self.getCrossingDf()
         crossingDf.to_csv(fpath, index=False)
 
-        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-other.csv")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{self.fps}-other.csv")
         if os.path.exists(fpath):
             os.remove(fpath)
         otherDf = self.getOtherDf()
@@ -478,7 +483,7 @@ class LocationData:
         locDir = self.madeLocationDir(outputDir)
         date_time = datetime.now().strftime("%Y-%m-%d")
 
-        fpath = os.path.join(locDir, f"{date_time}-fps-{FPS}-all.dill")
+        fpath = os.path.join(locDir, f"{date_time}-fps-{self.fps}-all.dill")
         if os.path.exists(fpath):
             os.remove(fpath)
         with open(fpath, "wb") as fp:
@@ -492,18 +497,20 @@ class LocationData:
 
         for sceneId in self._sceneData:
 
+            print("sceneId", sceneId)
+
             if self.getSceneData(sceneId) is None:
                 logging.warn(f"No scene data for {sceneId}")
                 continue
 
 
             # dataframes
-            dfPrefix = f"{date_time}-fps-{FPS}"
+            dfPrefix = f"{date_time}-fps-{self.fps}"
             pathPrefix = os.path.join(locDir, dfPrefix)
             self.getSceneData(sceneId).saveDataframes(pathPrefix)
 
             # whole thing as dill
-            fname = f"{date_time}-fps-{FPS}-scene-{sceneId}.dill"
+            fname = f"{date_time}-fps-{self.fps}-scene-{sceneId}.dill"
             fpath = os.path.join(locDir, fname)
             if os.path.exists(fpath):
                 os.remove(fpath)

@@ -1,6 +1,7 @@
 from extractors.loader import Loader
 from extractors.LocationData import LocationData
 from extractors.SceneData import SceneData
+from extractors.TrackClass import TrackClass
 from .TrajectoryUtils import TrajectoryUtils
 from loguru import logger
 import matplotlib.pyplot as plt
@@ -79,7 +80,7 @@ class TrajectoryVisualizer:
         self.initPlot(
             recordingId=list(sceneData.pedData.recordingId)[0],
             title=f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}",
-            # backgroundImagePath=sceneData.backgroundImagePath
+            backgroundImagePath=sceneData.backgroundImagePath
         )
 
         # scene box
@@ -129,6 +130,41 @@ class TrajectoryVisualizer:
                     self.plot(sceneData.orthoPxToMeter, clippedDf,
                               style="w", xCol='sceneX', yCol='sceneY')
         plt.show()
+    
+
+    def showSceneProblems(self, sceneData: SceneData):
+        self.initPlot(
+            recordingId=list(sceneData.pedData.recordingId)[0],
+            title=f"Trajectories for location{sceneData.locationId} and scene {sceneData.sceneId}",
+            backgroundImagePath=sceneData.backgroundImagePath
+        )
+        self.plotSceneBox(sceneData)
+        for problemClass in sceneData.problematicIds:
+            problemIds = sceneData.problematicIds[problemClass]
+            
+            print(f"Showing {problemClass} problems")
+            pedIds = sceneData.uniquePedIds()
+            ohterIds = sceneData.uniqueOtherIds()
+            # can be in both ped or other
+            for problemId in problemIds:
+                if problemId in pedIds:
+                    # print("in pedIds?")
+                    fullTrack = sceneData.getPedDfByUniqueTrackId(problemId)
+                    clippedTrack = sceneData.getPedDfByUniqueTrackId(
+                    problemId, clipped=True)
+                else:
+                    fullTrack = sceneData.getOtherDfByUniqueTrackId(problemId)
+                    clippedTrack = sceneData.getOtherDfByUniqueTrackId(
+                    problemId, clipped=True)
+                
+                # print(fullTrack, clippedTrack)
+                if len(fullTrack) == 0:
+                    raise ValueError(f"{problemClass} {problemId} has no trajectory!")
+                self.plot(sceneData.orthoPxToMeter, fullTrack)
+                self.plot(sceneData.orthoPxToMeter, clippedTrack)
+
+            plt.show()
+
 
 
     
