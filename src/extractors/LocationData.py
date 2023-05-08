@@ -1,3 +1,4 @@
+from typing import List
 import pandas as pd
 from sortedcontainers import SortedList
 from loguru import logger
@@ -326,6 +327,9 @@ class LocationData:
         sceneId = str(sceneId)
         otherDf = self.getOtherDf()
         return otherDf[otherDf["sceneId"] == sceneId].copy().reset_index()
+    
+    def getSceneIds(self) -> List[str]:
+        return list(self._sceneData.keys())
 
     def getSceneData(self, sceneId, boxWidth=6, boxHeight=6, refresh=False, fps=FPS) -> SceneData:
         """_summary_
@@ -492,6 +496,8 @@ class LocationData:
         date_time = datetime.now().strftime("%Y-%m-%d")
 
         for sceneId in self._sceneData:
+
+            print("sceneId", sceneId)
 
             if self.getSceneData(sceneId) is None:
                 logging.warn(f"No scene data for {sceneId}")
