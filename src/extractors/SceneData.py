@@ -669,11 +669,11 @@ class SceneData:
         self.problematicIds[outlierClass] = set([])
         for outlierPedId in outlierPedIds:
             self.problematicIds[outlierClass].add(outlierPedId)
-            self.warnings.append(
-                f"{outlierClass} {outlierPedId}: moving {outlierPedId} to others as speed is unrealistic")
             outlierDf = self.pedData[self.pedData["uniqueTrackId"] == outlierPedId].copy() # original data
             outlierDf["class"] = outlierClass
             outlierDfs.append(outlierDf)
+            self.warnings.append(
+                f"{outlierClass} {outlierPedId}: moving {outlierPedId} to others as speed is unrealistic {outlierDf['speed']}")
         
         self.otherData = pd.concat([self.otherData] + outlierDfs, ignore_index=True)
         
