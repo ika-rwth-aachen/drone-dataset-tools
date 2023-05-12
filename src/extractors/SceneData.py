@@ -269,7 +269,7 @@ class SceneData:
         """speed can be negative or positive based on direction
         """
 
-        logging.info(f"Scene {self.sceneId}: adding dynamics")
+        logging.info(f"Scene {self.sceneId}: adding dynamics (velocity, acceleration) in scene coordinates")
 
         logging.debug(f"adding pedestrian local dynamics for scene {self.sceneId}")
         self._addLocalDynamicsForDf(self.getPedDataInSceneCoordinates())
@@ -280,6 +280,7 @@ class SceneData:
         pass
 
     def _addLocalDynamicsForDf(self, df: pd.DataFrame):
+        # print(df.head())
         df["sceneXVelocity"] = TrajectoryUtils.getVelocitySeriesForAll(df, "sceneX", self.fps)
         df["sceneYVelocity"] = TrajectoryUtils.getVelocitySeriesForAll(df, "sceneY", self.fps)
         df["sceneXAcceleration"] = TrajectoryUtils.getAccelerationSeriesForAll(df, "sceneXVelocity", self.fps)
@@ -437,7 +438,7 @@ class SceneData:
         trackId = splitDfs[0].head(1)["uniqueTrackId"].iloc[0]
         if len(splitDfs) > 10:
             raise Exception(f"SceneData: track #{trackId} has been split ({len(splitDfs)}) times ({len(splitDfs)}). Cannot handle more than 10 tracks")
-        trackId = trackId * 100
+        trackId = trackId * 1000
         for splitDf in splitDfs:
             splitDf["uniqueTrackId"] = trackId
             trackId += 1
@@ -499,6 +500,7 @@ class SceneData:
 
                     for clippedDf in clippedDfs:
                         if self.hasValidCrossingLength(clippedDf, trackId, trackClass, minLength, maxLength):
+                            # clippedDf.reset_index(drop=True)
                             validClips.append(clippedDf)
 
 
@@ -511,16 +513,19 @@ class SceneData:
             return validClips
 
 
-    def _clipPed(self, crossingOffset, onFull = True):
+    def _clipPed(self, crossingOffset, onFull = True, ids=None):
         
         logger.debug("clipping trajectories")
         scenePolygon = TrajectoryUtils.scenePolygon(
             self.sceneConfig, self.sceneConfig["boxWidth"], self.sceneConfig["roadWidth"] + crossingOffset)
 
         # logging.info(f"clipping trajectories with scene polygon {scenePolygon}")
+        if ids is None:
+            ids = self.uniquePedIds()
         dfs = []
-        for pedId in tqdm(self.uniquePedIds(), desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
+        for pedId in tqdm(ids, desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId, clipped = not onFull)
+            # print(len(pedDf))
 
             clippedDfs = self._clipTrack(
                 trackDf=pedDf,
@@ -531,13 +536,24 @@ class SceneData:
                 maxLength=(self.sceneConfig["roadWidth"] + crossingOffset) * 3,
             )
 
+
             if len(clippedDfs) > 1:
                 self.assignNewTrackIdsToSplits(clippedDfs)
-                dfs.extend(clippedDfs)
 
+            # print(pedDf)
+            # print(len(clippedDfs))
+            # print(len(clippedDfs[0]), len(clippedDfs[1]))
+            # print(clippedDfs[0]["uniqueTrackId"].unique(), clippedDfs[1]["uniqueTrackId"].unique())
+
+            # print("before", len(dfs))
             if len(clippedDfs) > 0:
                 dfs.extend(clippedDfs)
+            else:
+                self.warnings.append(
+                    f"Ped {pedId}: is lost due to clipping. Check raw data")
+                self.problematicIds[TrackClass.Pedestrian].add(pedId)
 
+            # print("after", len(dfs))
 
             
         if len(dfs) == 0:
@@ -567,15 +583,18 @@ class SceneData:
 
             if len(clippedDfs) > 1:
                 self.assignNewTrackIdsToSplits(clippedDfs)
-                dfs.extend(clippedDfs)
 
             if len(clippedDfs) > 0:
                 dfs.extend(clippedDfs)
+            else:
+                self.warnings.append(
+                    f"Other {otherId}: is lost due to clipping. Check raw data")
+                self.problematicIds[TrackClass.getTrackType(otherDf)].add(otherId)
 
 
 
         if len(dfs) == 0:
-            """No pedData"""
+            """No Data"""
             self._clippedOtherData = pd.DataFrame()
         else:
             self._clippedOtherData = pd.concat(dfs, ignore_index=True)
@@ -669,11 +688,11 @@ class SceneData:
         self.problematicIds[outlierClass] = set([])
         for outlierPedId in outlierPedIds:
             self.problematicIds[outlierClass].add(outlierPedId)
-            self.warnings.append(
-                f"{outlierClass} {outlierPedId}: moving {outlierPedId} to others as speed is unrealistic")
             outlierDf = self.pedData[self.pedData["uniqueTrackId"] == outlierPedId].copy() # original data
             outlierDf["class"] = outlierClass
             outlierDfs.append(outlierDf)
+            self.warnings.append(
+                f"{outlierClass} {outlierPedId}: moving {outlierPedId} to others as speed is unrealistic {outlierDf['speed']}")
         
         self.otherData = pd.concat([self.otherData] + outlierDfs, ignore_index=True)
         

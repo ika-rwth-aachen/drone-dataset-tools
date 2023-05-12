@@ -88,14 +88,22 @@ class TrajectoryVisualizer:
         self.plotSceneBox(sceneData)
 
         # show pedestrians
-        uniqueCrossingIds = sceneData.uniquePedIds()
+
+        # uniqueCrossingIds = sceneData.uniquePedIds()
+        uniqueCrossingIds = ids
+        if uniqueCrossingIds is None:
+            uniqueCrossingIds = sceneData.uniquePedIds()
+            
         if offset is not None:
             uniqueCrossingIds = uniqueCrossingIds[offset: offset+limit]
         for uniqueTrackId in uniqueCrossingIds:
-            if (ids is not None) and (uniqueTrackId not in ids):
-                continue
+            # if (ids is not None) and (uniqueTrackId not in ids):
+            #     continue
             if not onlyClipped:
                 pedDf = sceneData.getPedDfByUniqueTrackId(uniqueTrackId)
+                if len(pedDf) == 0:
+                    #this is a split one
+                    pedDf = sceneData.getPedDfByUniqueTrackId(int(uniqueTrackId // 1000))
                 self.plot(sceneData.orthoPxToMeter, pedDf)
 
             clippedDf = sceneData.getPedDfByUniqueTrackId(
