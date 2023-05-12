@@ -269,7 +269,7 @@ class SceneData:
         """speed can be negative or positive based on direction
         """
 
-        logging.info(f"Scene {self.sceneId}: adding dynamics")
+        logging.info(f"Scene {self.sceneId}: adding dynamics (velocity, acceleration) in scene coordinates")
 
         logging.debug(f"adding pedestrian local dynamics for scene {self.sceneId}")
         self._addLocalDynamicsForDf(self.getPedDataInSceneCoordinates())
@@ -537,6 +537,10 @@ class SceneData:
 
             if len(clippedDfs) > 0:
                 dfs.extend(clippedDfs)
+            else:
+                self.warnings.append(
+                    f"Ped {pedId}: is lost due to clipping. Check raw data")
+                self.problematicIds[TrackClass.Pedestrian].add(pedId)
 
 
             
@@ -571,11 +575,15 @@ class SceneData:
 
             if len(clippedDfs) > 0:
                 dfs.extend(clippedDfs)
+            else:
+                self.warnings.append(
+                    f"Other {otherId}: is lost due to clipping. Check raw data")
+                self.problematicIds[TrackClass.getTrackType(otherDf)].add(otherId)
 
 
 
         if len(dfs) == 0:
-            """No pedData"""
+            """No Data"""
             self._clippedOtherData = pd.DataFrame()
         else:
             self._clippedOtherData = pd.concat(dfs, ignore_index=True)
