@@ -143,7 +143,9 @@ class TrajectoryUtils:
             exitFrame = row[frameCol]
             exitCount += 1
         
-        return pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)].copy(), exitCount
+        df = pedDf[(pedDf[frameCol] >= entryFrame) & (pedDf[frameCol] <= exitFrame)].copy()
+        df.reset_index(drop=True)
+        return df, exitCount
 
     @staticmethod
     def clipByRectWithSplits(trackDf, xCol, yCol, frameCol, rect) -> List[pd.DataFrame]:
@@ -193,6 +195,7 @@ class TrajectoryUtils:
             # print("entryFrame", entryFrame)
             # print("exitFrame", exitFrame)
             choppedDf = trackDf[(trackDf[frameCol] >= entryFrame) & (trackDf[frameCol] <= exitFrame)].copy()
+            choppedDf.reset_index(drop=True)
             brokenTracks.append(choppedDf)
         
         return brokenTracks
