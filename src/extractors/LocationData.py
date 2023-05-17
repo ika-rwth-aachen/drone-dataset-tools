@@ -280,7 +280,8 @@ class LocationData:
             sceneData = self.getSceneData(
                 sceneId, 
                 sceneConfig["boxWidth"], 
-                sceneConfig["roadWidth"]
+                sceneConfig["roadWidth"],
+                # refresh=True
             ) # just to be save if precomputation was not done
             if sceneData is not None:
                 sceneData.buildLocalInformation(self.transformer, self.cleaner, force=True)
@@ -496,9 +497,6 @@ class LocationData:
         date_time = datetime.now().strftime("%Y-%m-%d")
 
         for sceneId in self._sceneData:
-
-            print("sceneId", sceneId)
-
             if self.getSceneData(sceneId) is None:
                 logging.warn(f"No scene data for {sceneId}")
                 continue
