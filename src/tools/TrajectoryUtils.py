@@ -451,7 +451,9 @@ class TrajectoryUtils:
         # for trackId in tqdm(tracksDf["uniqueTrackId"].unique(), desc=f"trimming trajectories"):
         for trackId in tracksDf["uniqueTrackId"].unique():
             aTrack = tracksDf[tracksDf["uniqueTrackId"] == trackId]
-            trimmedTracks.append(aTrack.iloc[2: len(aTrack) - 2, :]) # 4 frames to exclude invalid acceleration and velocities
+            trimmedTrack = aTrack.iloc[2: len(aTrack) - 2, :].copy()
+            trimmedTrack.reset_index(drop=True)
+            trimmedTracks.append(trimmedTrack) # 4 frames to exclude invalid acceleration and velocities
         
         return pd.concat(trimmedTracks)
 

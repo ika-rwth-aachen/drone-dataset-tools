@@ -225,7 +225,7 @@ class SceneData:
         pedDf = self.getClippedPedDfs()
         self._transformDfToLocalCoordinates(pedDf)
 
-        otherDf = self.getClippedOtherDfs()
+        otherDf = self.getClippedOtherDfs() # TODO undo
         self._transformDfToLocalCoordinates(otherDf)
 
         self._isLocalTransformationDone = True
@@ -278,7 +278,7 @@ class SceneData:
         logging.debug(f"adding pedestrian local dynamics for scene {self.sceneId}")
         self._addLocalDynamicsForDf(self.getPedDataInSceneCoordinates())
 
-        logging.debug(f"adding other local dynamics for scene {self.sceneId}")
+        logging.debug(f"adding other local dynamics for scene {self.sceneId}") # TODO undo
         self._addLocalDynamicsForDf(self.getOtherDataInSceneCoordinates())
 
         pass
@@ -302,8 +302,11 @@ class SceneData:
 
         logging.debug(f"trimming pedestrian local data for scene {self.sceneId}")
         self._clippedPedData = TrajectoryUtils.trimHeadAndTailForAll(self.getPedDataInSceneCoordinates())
+        # print("_trimHeadAndTailForLocal", self._clippedPedData["uniqueTrackId"].unique())
+        # for tId in self._clippedPedData["uniqueTrackId"].unique():
+        #     print(tId, len(self.getClippedPedDfByUniqueTrackId(tId)))
 
-        logging.debug(f"trimming other local data for scene {self.sceneId}")
+        logging.debug(f"trimming other local data for scene {self.sceneId}") # TODO undo
         self._clippedOtherData = TrajectoryUtils.trimHeadAndTailForAll(self.getOtherDataInSceneCoordinates())
 
         idsAfter = self.uniqueClippedPedIds()
@@ -313,7 +316,7 @@ class SceneData:
         if len(idDiff) > 0:
             self.warnings.append(f"Trimming after dynamics lost {len(idDiff)} pedestrian tracks: {(idDiff)}")
 
-        idDiff = idsBeforeOther - idsAfterOther
+        idDiff = idsBeforeOther - idsAfterOther # TODO undo
         if len(idDiff) > 0:
             self.warnings.append(f"Trimming after dynamics lost {len(idDiff)} other tracks: {(idDiff)}")
 
@@ -527,11 +530,13 @@ class SceneData:
 
         # logging.info(f"clipping trajectories with scene polygon {scenePolygon}")
         if ids is None:
-            ids = self.uniquePedIds()
+            if onFull:
+                ids = self.uniquePedIds() # doesn't have the split ids
+            else:
+                ids = self.uniqueClippedPedIds()
         dfs = []
         for pedId in tqdm(ids, desc=f"clipping ped trajectories for scene # {self.sceneId} with width offset {crossingOffset}"):
             pedDf = self.getPedDfByUniqueTrackId(pedId, clipped = not onFull)
-
 
             clippedDfs = self._clipTrack(
                 trackDf=pedDf,
@@ -547,7 +552,9 @@ class SceneData:
                 self.assignNewTrackIdsToSplits(clippedDfs)
 
             # print(pedDf)
-            # print(len(clippedDfs))
+            # if pedId == 27530001:
+            #     print("input df len", len(pedDf))
+            #     print("clipped df len", len(clippedDfs[0]))
             # print(len(clippedDfs[0]), len(clippedDfs[1]))
             # print(clippedDfs[0]["uniqueTrackId"].unique(), clippedDfs[1]["uniqueTrackId"].unique())
 
@@ -574,7 +581,13 @@ class SceneData:
         scenePolygon = TrajectoryUtils.scenePolygon(
             self.sceneConfig, self.sceneConfig["boxWidth"] + OTHER_CLIP_LENGTH, self.sceneConfig["roadWidth"] + 12) # needed for bikes
         dfs = []
-        for otherId in tqdm(self.uniqueOtherIds(), desc=f"clipping other trajectories for scene # {self.sceneId}"):
+        if ids is None:
+            if onFull:
+                ids = self.uniqueOtherIds() # doesn't have the split ids
+            else:
+                ids = self.uniqueClippedOtherIds()
+
+        for otherId in tqdm(ids, desc=f"clipping other trajectories for scene # {self.sceneId}"):
 
             otherDf = self.getOtherDfByUniqueTrackId(otherId, clipped = not onFull)
             
@@ -608,7 +621,7 @@ class SceneData:
     def reClip(self):
         logging.info(f"Scene {self.sceneId}: clipping original data")
         self._clipPed(crossingOffset = self.CROSSING_CLIP_OFFSET_BEFORE_DYNAMICS)
-        self._clipOther()
+        self._clipOther() # TODO undo
 
     def appendSceneIdToClipped(self):
         clippedDf = self.getClippedPedDfs()
