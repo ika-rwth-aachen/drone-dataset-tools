@@ -1,0 +1,194 @@
+{
+  "2": {
+
+    "210": {
+      "centerXPixel": 628.5,
+      "centerYPixel": 286.5,
+      "centerX": 61.44,
+      "centerY": -28.01,
+      "angle": 12.17,
+      "roadWidth": 5.0,
+      "boxWidth": 10.0
+    },
+
+    "211": {
+      "centerXPixel": 688.5,
+      "centerYPixel": 273.5,
+      "centerX": 67.30,
+      "centerY": -26.74,
+      "angle": 12.17,
+      "roadWidth": 5.0,
+      "boxWidth": 5.0
+    },
+
+    "220": {
+      "centerXPixel": 383.5,
+      "centerYPixel": 322.5,
+      "centerX": 37.49,
+      "centerY": -31.53,
+      "angle": 16.0,
+      "roadWidth": 6.0,
+      "boxWidth": 15.0
+    },
+
+    "221": {
+      "centerXPixel": 302.5,
+      "centerYPixel": 345.5,
+      "centerX": 29.57,
+      "centerY": -33.77,
+      "angle": 16.0,
+      "roadWidth": 9.0,
+      "boxWidth": 15.0
+    },
+
+    "222": {
+      "centerXPixel": 188.5,
+      "centerYPixel": 375.5,
+      "centerX": 18.43,
+      "centerY": -36.71,
+      "angle": 16.0,
+      "roadWidth": 9.0,
+      "boxWidth": 20.0
+    },
+
+    "230": {
+      "centerXPixel": 490.5,
+      "centerYPixel": 392.5,
+      "centerX": 47.95,
+      "centerY": -38.36,
+      "angle": 111.79,
+      "roadWidth": 6.0,
+      "boxWidth": 15.0
+    },
+
+    "231": {
+      "centerXPixel": 518.5,
+      "centerYPixel": 461.5,
+      "centerX": 50.67,
+      "centerY": -45.11,
+      "angle": 111.79,
+      "roadWidth": 6.0,
+      "boxWidth": 10.0
+    },
+
+    "240": {
+      "centerXPixel": 450.5,
+      "centerYPixel": 180.5,
+      "centerX": 44.04,
+      "centerY": -17.64,
+      "angle": 134.74,
+      "roadWidth": 6.0,
+      "boxWidth": 10.0
+    }
+
+  },
+
+ "4":{
+
+  "440": {
+    "centerXPixel": 700,
+    "centerYPixel": 499,
+    "centerX": 106.68,
+    "centerY": -76.05,
+    "angle": 26.11,
+    "roadWidth": 18.0,
+    "boxWidth": 50.0
+  },
+
+  "441": {
+    "centerXPixel": 1085,
+    "centerYPixel": 315,
+    "centerX": 165.35,
+    "centerY": -48.01,
+    "angle": 23.74,
+    "roadWidth": 18.0,
+    "boxWidth": 25.0
+  },
+
+  "430": {
+    "centerXPixel": 908.28,
+    "centerYPixel": 240.47,
+    "centerX": 138.42,
+    "centerY": -36.65,
+    "angle": 84.42,
+    "roadWidth": 18.0,
+    "boxWidth": 40.0
+  }
+  },
+  
+  "1":{
+ 
+   "140": {
+     "centerXPixel": 663.27,
+     "centerYPixel": 230.52,
+     "centerX": 64.84,
+     "centerY": -22.53,
+     "angle": 49.09,
+     "roadWidth": 6.0,
+     "boxWidth": 15.0
+   },
+
+   "130": {
+     "centerXPixel": 716.38,
+     "centerYPixel": 498.85,
+     "centerX": 70.03068040678744, 
+     "centerY": -48.765745722836925,
+     "angle": 132.18,
+     "roadWidth": 6.0,
+     "boxWidth": 30.0
+   },
+   
+   "131": {
+     "centerXPixel": 414.91,
+     "centerYPixel": 166.13,
+     "centerX": 40.56007929811019,
+     "centerY": -16.240259270191235, 
+     "angle": 132.18,
+     "roadWidth": 6.0,
+     "boxWidth": 30.0
+   },
+
+   "120": {
+     "centerXPixel": 522.15,
+     "centerYPixel": 400.08,
+     "centerX": 51.043468235299784,  
+     "centerY": -39.11035290927653,
+     "angle": 45,
+     "roadWidth": 6.0,
+     "boxWidth": 10.0
+   }
+   },
+
+  "3":{
+ 
+   "340": {
+     "centerXPixel": 596.30,
+     "centerYPixel": 523.31,
+     "centerX": 58.292100179468086,
+     "centerY": -51.156865579267894,
+     "angle": 51,
+     "roadWidth": 20.0,
+     "boxWidth": 6.0
+   },
+
+   "330": {
+     "centerXPixel": 525.85,
+     "centerYPixel": 207.48,
+     "centerX": 51.40516666002566, 
+     "centerY": -20.28248355733027,
+     "angle": 14.84,
+     "roadWidth": 6.0,
+     "boxWidth": 6.0
+   },
+   
+   "331": {
+     "centerXPixel": 583.68,
+     "centerYPixel": 267.57,
+     "centerX": 57.05841528215987, 
+     "centerY": -26.156661487540294, 
+     "angle": 82.85,
+     "roadWidth": 2.0,
+     "boxWidth": 6.0
+   }
+   }
+}

@@ -1,6 +1,13 @@
-pandas==1.1.5
+sortedcontainers>=2.4.0
+pandas==1.5.2
 loguru==0.6.0
-numpy==1.22.0
+numpy>=1.20.3
 matplotlib==3.3.4
 opencv-python==4.2.0.32
 pyqt5==5.15.6
+shapely=1.7.1
+tdqm>=4.15.0
+dill>=0.3.1.1
+vg>=2.0.0
+seaborn>=0.12.1
+tti-dataset-tools>=0.1.3

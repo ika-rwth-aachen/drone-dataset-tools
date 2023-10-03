@@ -62,6 +62,10 @@ def create_args():
                     help="Show the track Visualizer maximized. Might affect performance.",
                     type=str2bool)
 
+    cs.add_argument('--ped_only', default=False,
+                    help="Play frames having pedestrians only",
+                    type=str2bool)
+
     return vars(cs.parse_args())
 
 
@@ -86,7 +90,7 @@ def main():
 
     # Load csv files
     logger.info("Loading csv files {}, {} and {}", tracks_file, tracks_meta_file, recording_meta_file)
-    tracks, static_info, meta_info = read_from_csv(tracks_file, tracks_meta_file, recording_meta_file,
+    tracks, tracks_meta, recording_meta = read_from_csv(tracks_file, tracks_meta_file, recording_meta_file,
                                                    include_px_coordinates=True)
 
     # Load background image for visualization
@@ -97,7 +101,7 @@ def main():
     config["background_image_path"] = background_image_path
 
     try:
-        visualization_plot = TrackVisualizer(config, tracks, static_info, meta_info)
+        visualization_plot = TrackVisualizer(config, tracks, tracks_meta, recording_meta)
         visualization_plot.show()
     except DataError:
         sys.exit(1)
@@ -116,3 +120,6 @@ def str2bool(v):
 
 if __name__ == '__main__':
     main()
+
+
+# python run_track_visualization.py --dataset_dir "G:/AV datasets/inD-dataset-v1.0/data/" --dataset "inD" --recording 18 --ped_only True --annotate_track_id True --show_trajectory True

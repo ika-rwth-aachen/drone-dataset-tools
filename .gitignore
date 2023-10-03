@@ -1,4 +1,9 @@
 .idea/
-data/
 *.csv
 *.pyc
+*.mp4
+*.dill
+*.dll
+*.zip
+data/ind
+*.ai

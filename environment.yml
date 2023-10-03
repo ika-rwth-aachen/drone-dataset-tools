@@ -1,0 +1,15 @@
+name: drone-dataset-tools38
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8.15
+  - jupyterlab
+  - tqdm
+  - dill
+  - autopep8
+  - seaborn
+  - pip
+  - pandas=1.5.2
+  - numpy
+prefix: C:\Users\adhocmaster\anaconda3\envs\drone-dataset-tools38

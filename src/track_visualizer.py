@@ -16,6 +16,8 @@ from loguru import logger
 from matplotlib import animation
 from matplotlib.widgets import Button, TextBox
 
+from sortedcontainers import SortedList
+
 
 class TrackVisualizer(object):
     def __init__(self, config: dict, tracks: List[dict], tracks_meta: List[dict], recording_meta: dict):
@@ -25,6 +27,13 @@ class TrackVisualizer(object):
         self.location_id = recording_meta["locationId"]
         self.recording_name = config["recording"]
         self.playback_speed = config["playback_speed"]
+        self.pedestrianFrameRanges = 0 # range of frames having pedestrians.
+        self.currentPedRange = 0
+
+        if config['ped_only']:
+            self.pedestrianFrameRanges = self.getFramesWithPedestrians(tracks_meta)
+            print(f'number of pedestrians {len(self.pedestrianFrameRanges)}')
+            
         self.suppress_track_window = config["suppress_track_window"]
 
         # Currently clicked vehicle
@@ -141,7 +150,7 @@ class TrackVisualizer(object):
         #                          pedestrian="red", bicycle="yellow", motorcycle="yellow", default="green")
         self.class_colors = dict(car="lightblue", van="lightblue", truck_bus="lightblue", bus="lightblue",
                                  truck="lightblue",
-                                 pedestrian="lightblue", bicycle="lightblue", motorcycle="lightblue",
+                                 pedestrian="red", bicycle="lightblue", motorcycle="lightblue",
                                  default="lightblue")
 
         # Create legend
@@ -155,6 +164,10 @@ class TrackVisualizer(object):
         self.ax_button_next = self.fig.add_axes([0.53, 0.035, 0.06, 0.04])
         self.ax_button_next2 = self.fig.add_axes([0.60, 0.035, 0.06, 0.04])
         self.ax_button_reset = self.fig.add_axes([0.67, 0.035, 0.06, 0.04])
+
+        if config['ped_only']:
+            self.ax_textbox_ped = self.fig.add_axes([0.22, 0.035, 0.04, 0.04])
+            self.ax_button_nextPed = self.fig.add_axes([0.74, 0.035, 0.09, 0.04])
 
         # Define the widgets
         self.textbox_frame = TextBox(self.ax_textbox, 'Set Frame ', initial=str(self.minimum_frame))
@@ -177,8 +190,10 @@ class TrackVisualizer(object):
         self.stop_image = plt.imread("../assets/button_icons/stop.png")
         self.button_play = Button(self.ax_button_play, '', image=self.play_image)
         self.button_play.ax.axis('off')
-
         self.button_reset = Button(self.ax_button_reset, 'Reset')
+        if config['ped_only']:
+            self.textbox_ped = TextBox(self.ax_textbox_ped, 'Ped ', initial=str(self.minimum_frame))
+            self.button_nextPed = Button(self.ax_button_nextPed, 'Next Ped')
 
         # Define the callbacks for the widgets' actions
         self.button_previous.on_clicked(self._on_click_button_previous)
@@ -187,6 +202,8 @@ class TrackVisualizer(object):
         self.button_next2.on_clicked(self._on_click_button_next2)
         self.button_play.on_clicked(self._start_stop_animation)
         self.button_reset.on_clicked(self._reset)
+        if config['ped_only']:
+            self.button_nextPed.on_clicked(self._jumpToNextPed)
         self.fig.canvas.mpl_connect('key_press_event', self._on_keypress)
 
         # Initialize main axes
@@ -216,6 +233,7 @@ class TrackVisualizer(object):
         self.track_animation = animation.FuncAnimation(self.fig, self._update_figure, interval=20, blit=True,
                                                        init_func=self._clear_figure, cache_frame_data=False)
 
+        
         # Add listener to figure so that clicks on tracks open a plot window
         self.fig.canvas.mpl_connect('pick_event', self._open_track_plots_window)
 
@@ -236,7 +254,9 @@ class TrackVisualizer(object):
         :param args: Should be unused if called manually. If called by FuncAnimation, args contains a call counter.
         :return: List of artist handles that have been updated. Needed for blitting.
         """
-
+        # if self.animation_running == False:
+        #     self._clear_figure()
+        #     return self.plot_handles
         # Detect if the function was called manually (as FuncAnimation always adds a call counter). If the function
         # is called manually, draw all objects directly.
         animate = len(args) != 0
@@ -253,6 +273,9 @@ class TrackVisualizer(object):
             track_meta = self.tracks_meta[track_idx]
             initial_frame = track_meta["initialFrame"]
             current_index = self.current_frame - initial_frame
+
+            # print("track_id", track_id)
+            # print("current_index", current_index)
 
             object_class = track_meta["class"]
             if track["bboxVis"] is not None:
@@ -384,15 +407,25 @@ class TrackVisualizer(object):
                                            fontsize=12, color="white", animated=animate)
         plot_handles.append(label_current_frame)
 
-        # Update current frame
-        if self.current_frame == self.maximum_frame:
-            self.current_frame = self.minimum_frame
-        elif self.animation_running:
-            # This is the "play-speed"
-            self.current_frame = min(self.current_frame + self.playback_speed, self.maximum_frame)
+        # we are gonna jump to the next frame with pedestrian
+        
 
-            # Update the textbox to new current frame
+        # Update current frame
+        if self.animation_running:
+            self.current_frame = self.getNextFrame(self.current_frame)
+            # print("current_frame", self.current_frame)
             self.textbox_frame.set_val(self.current_frame)
+
+        # if self.current_frame == self.maximum_frame:
+        #     self.current_frame = self.minimum_frame
+        # elif self.animation_running:
+        #     # This is the "play-speed"
+        #     self.current_frame = min(self.current_frame + self.playback_speed, self.maximum_frame)
+            
+        #     print("current_frame", self.current_frame)
+
+        #     # Update the textbox to new current frame
+        #     self.textbox_frame.set_val(self.current_frame)
 
         self.plot_handles = plot_handles
         return plot_handles
@@ -445,6 +478,17 @@ class TrackVisualizer(object):
             else:
                 logger.warning("The entered frame does not exist. Maximum frame is {}.", self.maximum_frame)
 
+        if self.textbox_ped.capturekeystrokes:
+            if evt.key != "enter":
+                return
+
+            try:
+                pedId = int(self.textbox_ped.text)
+                self.jumpToPed(pedId)
+            except ValueError:
+                return
+
+
         # Time navigation for left and right arrow, fast backward and fast forward
         if evt.key == "right" and self.current_frame + self.playback_speed < self.maximum_frame:
             self.current_frame = self.current_frame + self.playback_speed
@@ -494,6 +538,7 @@ class TrackVisualizer(object):
             self._set_controls_activation(True)
 
     def _reset(self, _):
+        
         self.ax_button_play.images[0].set_data(self.play_image)
         self.button_play.canvas.draw_idle()
         self._set_controls_activation(True)
@@ -707,6 +752,101 @@ class TrackVisualizer(object):
         if track_id in self.track_info_figures:
             self.track_info_figures[track_id]["main_figure"].canvas.mpl_disconnect('close_event')
             self.track_info_figures.pop(track_id)
+    
+    def _jumpToNextPed(self, _):
+        running = self.animation_running
+
+        if running:
+            self._start_stop_animation(None)
+
+
+        nextRange = self.currentPedRange + 1
+        if nextRange >= len(self.pedestrianFrameRanges):
+            nextRange = 0
+
+
+        self.current_frame = self.pedestrianFrameRanges[nextRange][0]
+        self.textbox_frame.set_val(self.current_frame)
+
+        self.currentPedRange = nextRange
+
+        if running:
+            self._start_stop_animation(None)
+    
+    def jumpToPed(self, pedId):
+        """
+        jumps to the ped with id in box 
+        """
+        self.current_frame = self.getInitiaFrameFor(pedId)
+
+
+    def getNextFrame(self, curFrame):
+
+        if self.config['ped_only']:
+            return self.getNextFrameWithPedestrians(curFrame, self.playback_speed)
+
+        if self.current_frame == self.maximum_frame:
+            return self.minimum_frame
+
+        return min(self.current_frame + self.playback_speed, self.maximum_frame)
+
+
+    def getFramesWithPedestrians(self, tracks_meta):
+        """
+        Attributes:
+            tracks_meta: list of dictionary of tracks_meta_file.
+        Returns: a list or ranges. Each range for each pedestrian. Not optimized for multiple pedestrians in a frame.
+        """
+        frames = SortedList([])
+        for track in tracks_meta:
+            if track['class'] == 'pedestrian':
+                frames.add((track['initialFrame'], track['finalFrame']))
+                
+        return frames
+
+    def getPedIds(self):
+        ids = []
+        for track in self.tracks_meta:
+            if track['class'] == 'pedestrian':
+                ids.append(track['trackId'])
+        return ids
+    
+    def getInitiaFrameFor(self, trackId):
+        for track in self.tracks_meta:
+            if track['trackId'] == trackId:
+                return track['initialFrame']
+        return 0
+
+
+
+    def getNextFrameWithPedestrians(self, curFrame, skip=1):
+        # TODO use bijection for faster performance. use sorted containers.
+
+        if len(self.pedestrianFrameRanges) == 0:
+            raise Exception('No frame with pedestrian found')
+        
+
+        nextFrame = curFrame + skip
+        if nextFrame >= self.maximum_frame:
+            self.currentPedRange = 0
+            return self.pedestrianFrameRanges[0][0]
+        
+        for idx, range in enumerate(self.pedestrianFrameRanges):
+
+            if nextFrame <= range[0]:
+                self.currentPedRange = 0
+                return range[0]
+
+            if range[0] <= nextFrame and  range[1] >= nextFrame:
+                if idx < self.currentPedRange:
+                    continue
+                self.currentPedRange = idx
+                return nextFrame
+
+
+        # next frame is greater than all final frames
+        self.currentPedRange = 0
+        return self.pedestrianFrameRanges[0][0]
 
 
 class DataError(Exception):

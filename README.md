@@ -1,8 +1,13 @@
 # Drone-Dataset Tools
 
+
 The goal of this repository is to make using [drone datasets](https://www.drone-dataset.com/) as easy as possible. 
 Therefore, we provide source code in Python for import and visualization. 
 Thus, this source code not only allows to visualize trajectories and thus get an overview, but also serves as a template for your own projects.
+
+## Extractor documentation:
+Read the documentation [here](./doc/extractors.md) for the extractor API.
+Read the documentation [here](./doc/visualization.md) for the visualization API..
 
 ## Installation and Quick Start
 
@@ -90,6 +95,7 @@ All available options are listed in the following table:
 | `--annotate_orientation`    | `False`           | Annotate every track by its current orientation. | 
 | `--annotate_age`            | `False`           | Annotate every track by its current age. | 
 | `--show_maximized`          | `False`           | Show the track Visualizer maximized. Might affect performance. | 
+| `--ped_only`                | `False`           | Only render frames with pedestrians and a button to jump to the next pedestrian's initial frame. | 
 
 *Please note that drawing additional features may decrease the playback animation update rate.*
 
