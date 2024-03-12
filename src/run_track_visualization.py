@@ -18,8 +18,9 @@ def create_args():
                     type=str)
     cs.add_argument('--recording', default="26",
                     help="Name of the recording given by a number with a leading zero.", type=str)
-    cs.add_argument('--visualizer_params_dir', default="../data/visualizer_params/",
-                    help="Name of the recording given by a number with a leading zero.", type=str)
+    cs.add_argument('--visualizer_params_dir', default=None,
+                    help="Name of the visualizer params file given by a number with a leading zero.", type=str)
+    cs.add_argument('--assets_dir', default=None, help="Path to the assets directory.", type=str)
 
     # --- Visualization settings ---
     cs.add_argument('--playback_speed', default=4,
@@ -62,8 +63,13 @@ def create_args():
                     help="Show the track Visualizer maximized. Might affect performance.",
                     type=str2bool)
 
-    return vars(cs.parse_args())
-
+    # If no visualizer params/assets directory provided, then append default directory names appropriately.
+    args = vars(cs.parse_args())
+    if args["visualizer_params_dir"] is None:
+        args["visualizer_params_dir"] = args["dataset_dir"] + "/visualizer_params/"
+    if args["assets_dir"] is None:
+        args["assets_dir"] = os.path.join(args["visualizer_params_dir"] , "assets/")
+    return args
 
 def main():
     config = create_args()
