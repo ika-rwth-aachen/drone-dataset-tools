@@ -254,135 +254,25 @@ class TrackVisualizer(object):
             initial_frame = track_meta["initialFrame"]
             current_index = self.current_frame - initial_frame
 
-            object_class = track_meta["class"]
-            if track["bboxVis"] is not None:
-                bounding_box = track["bboxVis"][current_index] / self.scale_down_factor
-            else:
-                bounding_box = None
-            center_points = track["centerVis"] / self.scale_down_factor
-            center_point = center_points[current_index]
-
-            color = self.class_colors.get(object_class, self.class_colors["default"])
-
             if self.clicked_track_id and track_id == self.clicked_track_id:
                 current_frame = self.current_frame - track_meta["initialFrame"]
                 self._find_surrounding_vehicles(current_frame, track, show_log=False)
 
             if self.config["show_bounding_box"]:
-                edge_color = None
-                bbox_color = color
-                for vehicle_key, vehicle_id in self.surrounding_vehicles_ids.items():
-                    if isinstance(vehicle_id, list) and track_id in vehicle_id:
-                        bbox_color = self.surrounding_vehicles_colors[vehicle_key]
-                        break
-                    elif vehicle_id == track_id:
-                        bbox_color = self.surrounding_vehicles_colors[vehicle_key]
-                        break
+                # Upon clicking a bounding box, a new window displays additional track information.
+                plot_handles = self._draw_clickable_bounding_box(track, track_meta, plot_handles, animate)
 
-                if track_id == self.clicked_track_id:
-                    edge_color = "red"
-
-                if bounding_box is not None:
-                    if edge_color is not None:
-                        bbox = plt.Polygon(bounding_box, True, facecolor=bbox_color, edgecolor=edge_color,
-                                           **self.bbox_style)
-                    else:
-                        bbox = plt.Polygon(bounding_box, True, facecolor=bbox_color, edgecolor="k", **self.bbox_style)
-                else:
-                    bbox = plt.Circle(center_point, radius=2, facecolor=bbox_color)
-
-                bbox.set_animated(animate)
-
-                # Make bbox clickable to open track info window
-                bbox.set_picker(True)
-                bbox.track_id = track["trackId"]
-
-                self.ax.add_patch(bbox)
-                plot_handles.append(bbox)
-
-            if self.config["show_orientation"] and bounding_box is not None:
-                # Add triangles that display the direction of the cars
-                triangle_factor = 0.25
-                a_x = bounding_box[3, 0] + ((bounding_box[2, 0] - bounding_box[3, 0]) * triangle_factor)
-                b_x = bounding_box[0, 0] + ((bounding_box[1, 0] - bounding_box[0, 0]) * triangle_factor)
-                c_x = bounding_box[0, 0] + ((bounding_box[3, 0] - bounding_box[0, 0]) * 0.5)
-                triangle_x_position = np.array([a_x, b_x, c_x])
-
-                a_y = bounding_box[3, 1] + ((bounding_box[2, 1] - bounding_box[3, 1]) * triangle_factor)
-                b_y = bounding_box[0, 1] + ((bounding_box[1, 1] - bounding_box[0, 1]) * triangle_factor)
-                c_y = bounding_box[0, 1] + ((bounding_box[3, 1] - bounding_box[0, 1]) * 0.5)
-                triangle_y_position = np.array([a_y, b_y, c_y])
-
-                # Differentiate between vehicles that drive on the upper or lower lanes
-                triangle_info = np.array([triangle_x_position, triangle_y_position])
-                polygon = plt.Polygon(np.transpose(triangle_info), True, **self.orientation_style)
-                polygon.set_animated(animate)
-                self.ax.add_patch(polygon)
-                plot_handles.append(polygon)
+            if self.config["show_orientation"] and self.has_bounding_box(track):
+                plot_handles = self._draw_orientation_on_bounding_box(track, track_meta, plot_handles, animate)
 
             if self.config["show_trajectory"]:
-                centroid = plt.Circle((center_point[0], center_point[1]),
-                                      facecolor=color, **self.centroid_style)
-                centroid.set_animated(animate)
-                self.ax.add_patch(centroid)
-                plot_handles.append(centroid)
-                if center_points.shape[0] > 0:
-                    plotted_past_line = plt.Polygon(center_points[0:current_index + 1:2], closed=False, color=color,
-                                                    fill=False, **self.trajectory_style)
-                    plotted_past_line.set_animated(animate)
-                    self.ax.add_patch(plotted_past_line)
-                    plot_handles.append(plotted_past_line)
-                    if self.config["show_future_trajectory"]:
-                        # Check track direction
-                        plotted_centroids_future = plt.Polygon(center_points[current_index::2], closed=False,
-                                                               fill=False, **self.future_trajectory_style)
-                        plotted_centroids_future.set_animated(animate)
-                        self.ax.add_patch(plotted_centroids_future)
-                        plot_handles.append(plotted_centroids_future)
+                plot_handles = self._draw_trajectory(track, track_meta, plot_handles, animate)
 
-            # Compose annotation
-            annotation_text = ''
-            if self.config["annotate_track_id"]:
-                # Plot the text annotation
-                annotation_text = "ID{}".format(track_id)
-            if self.config["annotate_class"]:
-                if annotation_text != '':
-                    annotation_text += '|'
-                annotation_text += "{}".format(object_class[0])
-            if self.config["annotate_speed"]:
-                if annotation_text != '':
-                    annotation_text += '|'
-                current_velocity = np.sqrt(
-                    track["xVelocity"][current_index] ** 2 + track["yVelocity"][current_index] ** 2) * 3.6
-                annotation_text += "{:.2f}km/h".format(current_velocity)
-            if self.config["annotate_orientation"]:
-                if annotation_text != '':
-                    annotation_text += '|'
-                current_rotation = track["heading"][current_index]
-                annotation_text += "Deg%.2f" % current_rotation
-            if self.config["annotate_age"]:
-                if annotation_text != '':
-                    annotation_text += '|'
-                age = track_meta["numFrames"]
-                annotation_text += "Age%d/%d" % (current_index + 1, age)
-
-            if annotation_text:
-                text_patch = self.ax.text(center_point[0], center_point[1] - 2.5, annotation_text,
-                                          bbox={"fc": color, **self.text_box_style}, animated=animate,
-                                          **self.text_style)
-
-                # Make text clickable to open track info window
-                text_patch.set_picker(True)
-                text_patch.track_id = track["trackId"]
-
-                plot_handles.append(text_patch)
+            # Compose and display annotations for each track.
+            plot_handles = self._compose_track_annotation(track, track_meta, plot_handles, animate)
 
         # Draw current frame number
-        x = self.ax.get_xlim()[0] + 5
-        y = self.ax.get_ylim()[1] + int((self.ax.get_ylim()[0] - self.ax.get_ylim()[1]) * 0.05)
-        label_current_frame = self.ax.text(x, y, "Frame: {}/{}".format(self.current_frame, self.maximum_frame),
-                                           fontsize=12, color="white", animated=animate)
-        plot_handles.append(label_current_frame)
+        plot_handles = self._draw_current_frame_number(plot_handles, animate)    
 
         # Update current frame
         if self.current_frame == self.maximum_frame:
@@ -395,6 +285,177 @@ class TrackVisualizer(object):
             self.textbox_frame.set_val(self.current_frame)
 
         self.plot_handles = plot_handles
+        return plot_handles
+
+    def get_color(self, object_class):
+        return self.class_colors.get(object_class, self.class_colors["default"])
+
+    def has_bounding_box(self, track):
+        return track["bboxVis"] is not None
+
+    def _draw_clickable_bounding_box(self, track, track_meta, plot_handles, animate):
+        track_id = track["trackId"]
+        initial_frame = track_meta["initialFrame"]
+        current_index = self.current_frame - initial_frame
+        center_point = track["centerVis"][current_index] / self.scale_down_factor
+
+        edge_color = None
+        bbox_color = self.get_color(track_meta["class"])
+        for vehicle_key, vehicle_id in self.surrounding_vehicles_ids.items():
+            if isinstance(vehicle_id, list) and track_id in vehicle_id:
+                bbox_color = self.surrounding_vehicles_colors[vehicle_key]
+                break
+            elif vehicle_id == track_id:
+                bbox_color = self.surrounding_vehicles_colors[vehicle_key]
+                break
+
+        if track_id == self.clicked_track_id:
+            edge_color = "red"
+
+        if self.has_bounding_box(track):
+            bounding_box = track["bboxVis"][current_index] / self.scale_down_factor
+            if edge_color is not None:
+                bbox = plt.Polygon(bounding_box, True, facecolor=bbox_color, edgecolor=edge_color,
+                                    **self.bbox_style)
+            else:
+                bbox = plt.Polygon(bounding_box, True, facecolor=bbox_color, edgecolor="k", **self.bbox_style)
+        else:
+            bbox = plt.Circle(center_point, radius=2, facecolor=bbox_color)
+
+        bbox.set_animated(animate)
+
+        # Make bbox clickable to open track info window
+        bbox.set_picker(True)
+        bbox.track_id = track["trackId"]
+
+        self.ax.add_patch(bbox)
+        plot_handles.append(bbox)
+
+        return plot_handles
+
+    def _draw_orientation_on_bounding_box(self, track, track_meta, plot_handles, animate):
+        """
+        Draws orientation triangles on the bounding box of the current track.
+        """
+        # Must have a bounding box to draw orientation.
+        assert self.has_bounding_box(track)
+
+        initial_frame = track_meta["initialFrame"]
+        current_index = self.current_frame - initial_frame
+
+        bounding_box = track["bboxVis"][current_index] / self.scale_down_factor
+
+        # Add triangles that display the direction of the cars
+        triangle_factor = 0.25
+        a_x = bounding_box[3, 0] + ((bounding_box[2, 0] - bounding_box[3, 0]) * triangle_factor)
+        b_x = bounding_box[0, 0] + ((bounding_box[1, 0] - bounding_box[0, 0]) * triangle_factor)
+        c_x = bounding_box[0, 0] + ((bounding_box[3, 0] - bounding_box[0, 0]) * 0.5)
+        triangle_x_position = np.array([a_x, b_x, c_x])
+
+        a_y = bounding_box[3, 1] + ((bounding_box[2, 1] - bounding_box[3, 1]) * triangle_factor)
+        b_y = bounding_box[0, 1] + ((bounding_box[1, 1] - bounding_box[0, 1]) * triangle_factor)
+        c_y = bounding_box[0, 1] + ((bounding_box[3, 1] - bounding_box[0, 1]) * 0.5)
+        triangle_y_position = np.array([a_y, b_y, c_y])
+
+        # Differentiate between vehicles that drive on the upper or lower lanes
+        triangle_info = np.array([triangle_x_position, triangle_y_position])
+        polygon = plt.Polygon(np.transpose(triangle_info), True, **self.orientation_style)
+        polygon.set_animated(animate)
+        self.ax.add_patch(polygon)
+        plot_handles.append(polygon)
+
+        return plot_handles
+
+    def _draw_trajectory(self, track, track_meta, plot_handles, animate):
+        """
+        Display the trajectory of the current track.
+        """
+        initial_frame = track_meta["initialFrame"]
+        current_index = self.current_frame - initial_frame
+        object_class = track_meta["class"]
+        color = self.get_color(object_class)
+
+        num_center_points = track["centerVis"].shape[0]
+        center_points = track["centerVis"] / self.scale_down_factor
+        center_point = track["centerVis"][current_index] / self.scale_down_factor
+
+        centroid = plt.Circle((center_point[0], center_point[1]),
+                                facecolor=color, **self.centroid_style)
+        centroid.set_animated(animate)
+        self.ax.add_patch(centroid)
+        plot_handles.append(centroid)
+        if center_points.shape[0] > 0:
+            plotted_past_line = plt.Polygon(center_points[0:current_index + 1:2], closed=False, color=color,
+                                            fill=False, **self.trajectory_style)
+            plotted_past_line.set_animated(animate)
+            self.ax.add_patch(plotted_past_line)
+            plot_handles.append(plotted_past_line)
+            if self.config["show_future_trajectory"]:
+                # Check track direction
+                plotted_centroids_future = plt.Polygon(center_points[current_index::2], closed=False,
+                                                        fill=False, **self.future_trajectory_style)
+                plotted_centroids_future.set_animated(animate)
+                self.ax.add_patch(plotted_centroids_future)
+                plot_handles.append(plotted_centroids_future)
+        return plot_handles
+
+    def _compose_track_annotation(self, track, track_meta, plot_handles, animate):
+        """
+        A helper which composes the annotations for a given track.
+        """
+        track_id = track["trackId"]
+        initial_frame = track_meta["initialFrame"]
+        current_index = self.current_frame - initial_frame
+        object_class = track_meta["class"]
+
+        center_point = track["centerVis"][current_index] / self.scale_down_factor
+
+        # Compose annotation
+        annotation_text = ''
+        if self.config["annotate_track_id"]:
+            # Plot the text annotation
+            annotation_text = "ID{}".format(track_id)
+        if self.config["annotate_class"]:
+            if annotation_text != '':
+                annotation_text += '|'
+            annotation_text += "{}".format(object_class[0])
+        if self.config["annotate_speed"]:
+            if annotation_text != '':
+                annotation_text += '|'
+            current_velocity = np.sqrt(
+                track["xVelocity"][current_index] ** 2 + track["yVelocity"][current_index] ** 2) * 3.6
+            annotation_text += "{:.2f}km/h".format(current_velocity)
+        if self.config["annotate_orientation"]:
+            if annotation_text != '':
+                annotation_text += '|'
+            current_rotation = track["heading"][current_index]
+            annotation_text += "Deg%.2f" % current_rotation
+        if self.config["annotate_age"]:
+            if annotation_text != '':
+                annotation_text += '|'
+            age = track_meta["numFrames"]
+            annotation_text += "Age%d/%d" % (current_index + 1, age)
+
+        if annotation_text:
+            color = self.get_color(object_class)
+            text_patch = self.ax.text(center_point[0], center_point[1] - 2.5, annotation_text,
+                                        bbox={"fc": color, **self.text_box_style}, animated=animate,
+                                        **self.text_style)
+
+            # Make text clickable to open track info window
+            text_patch.set_picker(True)
+            text_patch.track_id = track["trackId"]
+
+            plot_handles.append(text_patch)
+
+        return plot_handles
+
+    def _draw_current_frame_number(self, plot_handles, animate):
+        x = self.ax.get_xlim()[0] + 5
+        y = self.ax.get_ylim()[1] + int((self.ax.get_ylim()[0] - self.ax.get_ylim()[1]) * 0.05)
+        label_current_frame = self.ax.text(x, y, "Frame: {}/{}".format(self.current_frame, self.maximum_frame),
+                                        fontsize=12, color="white", animated=animate)
+        plot_handles.append(label_current_frame)
         return plot_handles
 
     def _clear_figure(self):
